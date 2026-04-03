@@ -37,7 +37,7 @@ jobs:
           pip install flake8 black isort mypy
 
       - name: Run black (code formatting check)
-        run: black --check --diff tourism_app.py
+        run: black --check --diff Tourism.py
 
       - name: Run isort (import sorting check)
         run: isort --check-only --diff tourism_app.py
