@@ -10,7 +10,7 @@ env:
   PYTHON_VERSION: "3.11"
 
 jobs:
-  Build-and-Test:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,6 +26,15 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install black flake8 pytest
+
+      # 🔍 Formatting check
+      - name: Check formatting
+        run: black --check .
+
+      # 🔍 Lint
+      - name: Lint
+        run: flake8 . --max-line-length=120 --ignore=E501,W503
+
       # 🧪 Tests
       - name: Run tests
         run: pytest || true
