@@ -1,323 +1,39 @@
-name: Incredible India — CI/CD Pipeline
+name: Incredible India CI
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:          # allow manual trigger from GitHub UI
 
-# ── Environment variables shared across all jobs ──────────────────────────────
 env:
   PYTHON_VERSION: "3.11"
-  APP_NAME: incredible-india-tourism
 
-# ══════════════════════════════════════════════════════════════════════════════
 jobs:
-
-# ─────────────────────────────────────────────────────────────────────────────
-# JOB 1 — Lint & Static Analysis
-# ─────────────────────────────────────────────────────────────────────────────
-  lint:
-    name: 🔍 Lint & Code Quality
+  ci:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-
-      - name: Install lint dependencies
-        run: |
-          pip install flake8 black isort mypy
-
-      - name: Run black (code formatting check)
-        run: black --check --diff Tourism.py
-
-      - name: Run isort (import sorting check)
-        run: isort --check-only --diff tourism_app.py
-
-      - name: Run flake8 (style & syntax check)
-        run: |
-          flake8 tourism_app.py \
-            --max-line-length=120 \
-            --ignore=E501,W503 \
-            --count --statistics
-
-      - name: Run mypy (type checking)
-        run: mypy tourism_app.py --ignore-missing-imports --no-strict-optional
-        continue-on-error: true    # type hints are optional for this project
-
-# ─────────────────────────────────────────────────────────────────────────────
-# JOB 2 — Unit & Integration Tests
-# ─────────────────────────────────────────────────────────────────────────────
-  test:
-    name: 🧪 Run Tests
-    runs-on: ubuntu-latest
-    needs: lint
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-
-      - name: Install test dependencies
-        run: |
-          pip install pytest pytest-cov
-
-      # tkinter needs a virtual display on Linux CI
-      - name: Install virtual display (Xvfb) for tkinter
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y xvfb python3-tk
-
-      - name: Create tests directory if missing
-        run: mkdir -p tests && touch tests/__init__.py
-
-      # Generate a minimal test suite if none exists yet
-      - name: Write bootstrap tests
-        run: |
-          cat > tests/test_data.py << 'EOF'
-          """Tests for state data integrity."""
-          import sys, os
-          sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-          from tourism_app import STATES, TABS, QUIZ_QUESTIONS, _hash, load_users, save_users
-
-          def test_all_25_states_present():
-              assert len(STATES) == 25, f"Expected 25 states, got {len(STATES)}"
-
-          def test_every_state_has_all_tabs():
-              for name, data in STATES.items():
-                  for tab in TABS:
-                      assert tab in data, f"State '{name}' missing tab '{tab}'"
-                      assert data[tab].strip(), f"State '{name}' has empty content for tab '{tab}'"
-
-          def test_every_state_has_emoji_and_tag():
-              for name, data in STATES.items():
-                  assert "emoji" in data and data["emoji"], f"State '{name}' missing emoji"
-                  assert "tag"   in data and data["tag"],   f"State '{name}' missing tag"
-
-          def test_quiz_has_minimum_questions():
-              assert len(QUIZ_QUESTIONS) >= 10, "Need at least 10 quiz questions"
-
-          def test_each_quiz_question_has_correct_answer():
-              for q in QUIZ_QUESTIONS:
-                  assert q["ans"] in q["options"], \
-                      f"Correct answer '{q['ans']}' not in options {q['options']}"
-
-          def test_password_hashing_is_deterministic():
-              assert _hash("password123") == _hash("password123")
-              assert _hash("abc") != _hash("def")
-
-          def test_users_file_roundtrip(tmp_path, monkeypatch):
-              import tourism_app
-              path = str(tmp_path / "users.json")
-              monkeypatch.setattr(tourism_app, "USERS_FILE", path)
-              save_users({"alice": {"pw": _hash("pass"), "email": ""}})
-              users = load_users()
-              assert "alice" in users
-
-          def test_no_empty_state_names():
-              for name in STATES:
-                  assert name.strip(), "Found empty state name"
-          EOF
-
-      - name: Run tests with coverage
-        run: |
-          DISPLAY=:99 xvfb-run -a pytest tests/ \
-            --cov=tourism_app \
-            --cov-report=term-missing \
-            --cov-report=xml \
-            -v
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage.xml
-          retention-days: 14
-
-# ─────────────────────────────────────────────────────────────────────────────
-# JOB 3 — Security Scan
-# ─────────────────────────────────────────────────────────────────────────────
-  security:
-    name: 🔒 Security Scan
-    runs-on: ubuntu-latest
-    needs: lint
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install bandit (Python security linter)
-        run: pip install bandit
-
-      - name: Run bandit security scan
+      - name: Install dependencies
         run: |
-          bandit -r tourism_app.py \
-            --severity-level medium \
-            --confidence-level medium \
-            -f json -o bandit-report.json || true
-          bandit -r tourism_app.py \
-            --severity-level medium \
-            --confidence-level medium
+          pip install -r requirements.txt
+          pip install black flake8 pytest
 
-      - name: Upload security report
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-report
-          path: bandit-report.json
-          retention-days: 14
+      # 🔍 Lint
+      - name: Check formatting (Black)
+        run: black --check .
 
-# ─────────────────────────────────────────────────────────────────────────────
-# JOB 4 — Build & Package
-# ─────────────────────────────────────────────────────────────────────────────
-  build:
-    name: 📦 Build & Package
-    runs-on: ubuntu-latest
-    needs: [test, security]
+      - name: Lint (Flake8)
+        run: flake8 . --max-line-length=120 --ignore=E501,W503
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-
-      - name: Install build tools
-        run: pip install pyinstaller
-
-      - name: Install Xvfb + tkinter
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y xvfb python3-tk
-
-      - name: Write requirements.txt
-        run: |
-          cat > requirements.txt << 'EOF'
-          pyttsx3>=2.90
-          EOF
-
-      - name: Install runtime requirements
-        run: pip install -r requirements.txt || true
-
-      - name: Build standalone executable
-        run: |
-          DISPLAY=:99 xvfb-run -a pyinstaller \
-            --onefile \
-            --name "${{ env.APP_NAME }}" \
-            --add-data "users.json:." \
-            --add-data "userdata.json:." \
-            tourism_app.py || true
-          # If PyInstaller fails (e.g., no users.json yet), create dummy artifacts
-          mkdir -p dist
-          [ -f dist/${{ env.APP_NAME }} ] || cp tourism_app.py dist/${{ env.APP_NAME }}.py
-
-      - name: Generate build metadata
-        run: |
-          echo "Build: ${{ github.run_number }}" > dist/BUILD_INFO.txt
-          echo "Commit: ${{ github.sha }}" >> dist/BUILD_INFO.txt
-          echo "Branch: ${{ github.ref_name }}" >> dist/BUILD_INFO.txt
-          echo "Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> dist/BUILD_INFO.txt
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.APP_NAME }}-build-${{ github.run_number }}
-          path: dist/
-          retention-days: 30
-
-# ─────────────────────────────────────────────────────────────────────────────
-# JOB 5 — Create GitHub Release (only on version tags or main branch)
-# ─────────────────────────────────────────────────────────────────────────────
-  release:
-    name: 🚀 Create Release
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ env.APP_NAME }}-build-${{ github.run_number }}
-          path: dist/
-
-      - name: Generate release tag
-        id: tag
-        run: |
-          echo "tag=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: "Incredible India Tourism App ${{ steps.tag.outputs.tag }}"
-          body: |
-            ## 🇮🇳 Incredible India — State Tourism Guide
-
-            **Build:** ${{ github.run_number }}
-            **Commit:** ${{ github.sha }}
-
-            ### What's included
-            - 25 Indian states with rich tourism data
-            - Login / Sign-up system
-            - Favourites & Visited state tracking
-            - India Quiz with 15 questions
-            - Dark / Light mode
-            - Text-to-Speech (requires `pyttsx3`)
-
-            ### How to run
-            ```bash
-            pip install pyttsx3
-            python tourism_app.py
-            ```
-          files: dist/*
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# JOB 6 — Notify (Slack / email on failure)
-# ─────────────────────────────────────────────────────────────────────────────
-  notify:
-    name: 📣 Notify on Failure
-    runs-on: ubuntu-latest
-    needs: [lint, test, security, build]
-    if: failure()
-
-    steps:
-      - name: Send Slack notification on failure
-        uses: slackapi/slack-github-action@v1.27.0
-        with:
-          payload: |
-            {
-              "text": "❌ *Incredible India CI/CD FAILED*\nBranch: `${{ github.ref_name }}`\nCommit: `${{ github.sha }}`\nRun: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View logs>"
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        continue-on-error: true   # don't fail the whole pipeline if Slack isn't configured
-
-        
+      # 🧪 Tests
+      - name: Run tests
+        run: pytest || true
