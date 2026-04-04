@@ -35,7 +35,7 @@ jobs:
         run: pytest || echo "No tests found, continuing..."
 
   # ─────────────────────────────
-  # 2. SonarCloud Analysis
+  # 2. SonarCloud Analysis (FORCED CONFIG)
   # ─────────────────────────────
   sonarcloud:
     name: SonarCloud Analysis
@@ -49,6 +49,12 @@ jobs:
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          args: >
+            -Dsonar.projectKey=incredible-india_Incredible-India-Tourism
+            -Dsonar.organization=incredible-india
+            -Dsonar.sources=.
+            -Dsonar.host.url=https://sonarcloud.io
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
