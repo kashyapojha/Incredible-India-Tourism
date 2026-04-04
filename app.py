@@ -1,22 +1,22 @@
 """
 Incredible India — Flask Web Application
 """
-
-import os
-import json
-import hashlib
-import random
 import datetime
+import hashlib
+import json
+import os
+import random
 from functools import wraps
+
 from flask import (
     Flask,
+    flash,
+    jsonify,
+    redirect,
     render_template,
     request,
-    redirect,
-    url_for,
     session,
-    jsonify,
-    flash,
+    url_for,
 )
 
 app = Flask(__name__)
