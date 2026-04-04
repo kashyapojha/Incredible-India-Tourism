@@ -4,68 +4,60 @@ Features: Login/Signup, Favourites, Quiz, Dark Mode, Search, TTS
 """
 
 import tkinter as tk
-from tkinter import scrolledtext, messagebox
-
-import json
-import hashlib
-import os
-import random
-import threading
-import datetime
+from tkinter import ttk, scrolledtext, messagebox
+import json, hashlib, os, random, threading, datetime
 
 try:
     import pyttsx3
-
     TTS_AVAILABLE = True
 except ImportError:
     TTS_AVAILABLE = False
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 USERS_FILE = os.path.join(BASE_DIR, "users.json")
-DATA_FILE = os.path.join(BASE_DIR, "userdata.json")
+DATA_FILE  = os.path.join(BASE_DIR, "userdata.json")
 
 # ── Colours ───────────────────────────────────────────────────────────────────
 THEMES = {
     "light": {
-        "bg": "#f5f4f0",
-        "panel": "#ffffff",
-        "header": "#1a3d2b",
+        "bg":        "#f5f4f0",
+        "panel":     "#ffffff",
+        "header":    "#1a3d2b",
         "header_fg": "#ffffff",
-        "accent": "#1D9E75",
-        "accent2": "#0F6E56",
-        "text": "#1a1a1a",
-        "muted": "#6b7280",
-        "border": "#e2e0d8",
-        "tag_bg": "#E1F5EE",
-        "tag_fg": "#0F6E56",
-        "list_sel": "#1D9E75",
-        "card": "#f9f8f4",
-        "danger": "#c0392b",
+        "accent":    "#1D9E75",
+        "accent2":   "#0F6E56",
+        "text":      "#1a1a1a",
+        "muted":     "#6b7280",
+        "border":    "#e2e0d8",
+        "tag_bg":    "#E1F5EE",
+        "tag_fg":    "#0F6E56",
+        "list_sel":  "#1D9E75",
+        "card":      "#f9f8f4",
+        "danger":    "#c0392b",
     },
     "dark": {
-        "bg": "#1c1c1e",
-        "panel": "#2c2c2e",
-        "header": "#0d1f16",
+        "bg":        "#1c1c1e",
+        "panel":     "#2c2c2e",
+        "header":    "#0d1f16",
         "header_fg": "#e0f2eb",
-        "accent": "#30d68d",
-        "accent2": "#1D9E75",
-        "text": "#f2f2f7",
-        "muted": "#8e8e93",
-        "border": "#3a3a3c",
-        "tag_bg": "#1a3d2b",
-        "tag_fg": "#30d68d",
-        "list_sel": "#1D9E75",
-        "card": "#3a3a3c",
-        "danger": "#ff453a",
+        "accent":    "#30d68d",
+        "accent2":   "#1D9E75",
+        "text":      "#f2f2f7",
+        "muted":     "#8e8e93",
+        "border":    "#3a3a3c",
+        "tag_bg":    "#1a3d2b",
+        "tag_fg":    "#30d68d",
+        "list_sel":  "#1D9E75",
+        "card":      "#3a3a3c",
+        "danger":    "#ff453a",
     },
 }
 
 # ── State data (25 states, 5 sections each) ───────────────────────────────────
 STATES = {
     "Rajasthan": {
-        "emoji": "🏯",
-        "tag": "Forts & Deserts",
+        "emoji": "🏯", "tag": "Forts & Deserts",
         "Overview": "Rajasthan — the Land of Kings — is India's largest state by area (342,239 sq km). Famed for massive forts, colorful culture, golden deserts and royal palaces, it greets visitors with 'Padhaaro Maare Desh.' Folk dance, music, turbans and camels create a living spectacle unlike anywhere else in India.",
         "Food": "Must-try: Dal Baati Churma · Laal Maas · Ghewar · Ker Sangri · Bajre ki Khichdi · Pyaaz Kachori · Gatte ki Sabzi\n\nRajasthani cuisine is rich, spicy and designed for desert survival. Dal Baati Churma is the state's most iconic dish — baked wheat balls with lentils and sweet churma. Laal Maas is a fiery red mutton curry. Ghewar is a honeycomb-shaped festival dessert.",
         "Places to Visit": "Top spots: Amber Fort · Hawa Mahal · Jaisalmer Fort · Mehrangarh Fort · Udaipur City Palace · Ranthambore National Park · Pushkar Lake · Chokhi Dhani\n\nJaipur — the Pink City — is the crown jewel. Jaisalmer's golden sandstone fort rises from the Thar Desert. Udaipur, the City of Lakes, is among the most romantic cities in India.",
@@ -73,8 +65,7 @@ STATES = {
         "Fun Facts": "• India's largest state by area\n• Jaipur was the world's first planned city (1727 AD)\n• The Thar Desert covers 60% of Rajasthan\n• Has more forts and palaces than any other Indian state\n• Home to the only hill fort listed as UNESCO World Heritage — Chittorgarh",
     },
     "Gujarat": {
-        "emoji": "🦁",
-        "tag": "Desert & Lions",
+        "emoji": "🦁", "tag": "Desert & Lions",
         "Overview": "Gujarat is the only home of pure Asiatic Lions, houses the world's largest salt desert (Rann of Kutch), and is the birthplace of Mahatma Gandhi and Sardar Vallabhbhai Patel. Its coastline stretches over 1,600 km — the longest of any Indian state.",
         "Food": "Must-try: Dhokla · Thepla · Fafda-Jalebi · Undhiyu · Khandvi · Gujarati Thali · Mohanthal\n\nGujarati cuisine is predominantly vegetarian, subtly sweet and balanced. The Gujarati Thali covers every taste. Undhiyu — mixed vegetables slow-cooked underground — is a winter specialty. Fafda-Jalebi is the beloved Sunday morning breakfast.",
         "Places to Visit": "Top spots: Gir National Park · Rann of Kutch · Dwarka Temple · Somnath Temple · Statue of Unity · Rani ki Vav · Sabarmati Ashram · Marine National Park\n\nThe Rann of Kutch is a dazzling white salt desert in winter. The Statue of Unity at 182m is the world's tallest. Rani ki Vav is a UNESCO-listed stepwell of breathtaking intricacy.",
@@ -82,8 +73,7 @@ STATES = {
         "Fun Facts": "• Longest coastline in India — over 1,600 km\n• Only home of wild Asiatic Lions\n• Statue of Unity is the world's tallest statue\n• Surat processes 90% of the world's diamonds\n• First Indian state to prohibit alcohol (1960)",
     },
     "Kerala": {
-        "emoji": "🌴",
-        "tag": "Backwaters & Beaches",
+        "emoji": "🌴", "tag": "Backwaters & Beaches",
         "Overview": "Kerala — 'God's Own Country' — is a 38,863 sq km treasure of backwaters, tea gardens, spice plantations and tropical beaches. Named one of the ten paradises of the world by National Geographic Traveler, it tops India's Human Development Index.",
         "Food": "Must-try: Sadya (banana leaf feast) · Appam with Stew · Fish Molee · Karimeen Pollichathu · Puttu and Kadala Curry · Kerala Prawn Curry · Payasam\n\nKeralan cuisine blends coconut, spices and seafood. The Sadya — a 20+ dish vegetarian feast on banana leaf — is served at Onam. Karimeen Pollichathu (pearl spot fish in banana leaf) is a local delicacy.",
         "Places to Visit": "Top spots: Alleppey Backwaters · Munnar Tea Gardens · Periyar Wildlife Sanctuary · Kovalam Beach · Varkala Cliff · Fort Kochi · Wayanad · Thekkady\n\nAlleppey is the 'Venice of the East' for its houseboat cruises. Munnar's emerald tea gardens are breathtaking. Fort Kochi blends Portuguese, Dutch and British colonial heritage.",
@@ -91,8 +81,7 @@ STATES = {
         "Fun Facts": "• 100% literacy rate — highest in India\n• Kalaripayattu (world's oldest martial art) originated here\n• Kerala produces 97% of India's rubber\n• Kathakali is one of India's 8 classical dance forms\n• Named 'God's Own Country' by the tourism board",
     },
     "Uttar Pradesh": {
-        "emoji": "🕌",
-        "tag": "Taj Mahal & Heritage",
+        "emoji": "🕌", "tag": "Taj Mahal & Heritage",
         "Overview": "Uttar Pradesh is home to the Taj Mahal and Varanasi — one of the oldest continuously inhabited cities on earth. It is the origin of both Buddhism and Jainism and India's most populous state.",
         "Food": "Must-try: Lucknowi Dum Biryani · Tunday Kabab · Petha (Agra) · Banarasi Paan · Malai Makhan · Bedai Sabzi · Tehri\n\nLucknow's Dum Biryani and Tunday Kabab are internationally famous. Agra's Petha — a translucent sweet from white pumpkin — is a must-buy souvenir. Banarasi Paan is as much ritual as snack.",
         "Places to Visit": "Top spots: Taj Mahal · Varanasi Ghats · Agra Fort · Fatehpur Sikri · Sarnath · Vrindavan & Mathura · Lucknow Bara Imambara · Dudhwa NP\n\nThe Taj Mahal is a UNESCO World Heritage Site. Varanasi's ghats at sunrise are profoundly spiritual. Fatehpur Sikri is a ghost Mughal city frozen in the 16th century.",
@@ -100,8 +89,7 @@ STATES = {
         "Fun Facts": "• The Taj Mahal took 22 years and 20,000 workers to build\n• Varanasi is one of the world's oldest cities (3,000+ years)\n• Buddha delivered his first sermon at Sarnath in UP\n• UP produces the most sugarcane in India\n• Lucknow is famous for its chikankari embroidery",
     },
     "Goa": {
-        "emoji": "🏖️",
-        "tag": "Beaches & Nightlife",
+        "emoji": "🏖️", "tag": "Beaches & Nightlife",
         "Overview": "India's smallest state by area, Goa is a former Portuguese colony that attracts 8+ million tourists annually. Its unique Indo-Portuguese culture, vibrant nightlife, stunning churches and golden beaches make it visibly different from the rest of India.",
         "Food": "Must-try: Fish Curry Rice · Prawn Balchão · Bebinca · Xacuti · Chouriço · Feni · Pork Vindaloo\n\nGoan food marries Indian spices with Portuguese techniques. Fish Curry Rice is the everyday staple. Bebinca is the layered coconut queen of Goan desserts. Feni — distilled from cashew apples — is Goa's beloved local spirit.",
         "Places to Visit": "Top spots: Calangute & Baga · Palolem Beach · Old Goa Churches (UNESCO) · Dudhsagar Falls · Fort Aguada · Anjuna Flea Market · Spice Plantations · Chapora Fort\n\nPalolem is Goa's most picturesque crescent beach. Bom Jesus Basilica is a UNESCO World Heritage Site. Dudhsagar Falls is one of India's tallest waterfalls.",
@@ -109,8 +97,7 @@ STATES = {
         "Fun Facts": "• Highest per capita income among Indian states\n• Two UNESCO World Heritage Sites\n• Feni is the only Indian spirit with a GI tag\n• Under Portuguese rule for 451 years (1510–1961)\n• 30+ beaches — one for every day of the month",
     },
     "Jammu & Kashmir": {
-        "emoji": "🏔️",
-        "tag": "Paradise Valley",
+        "emoji": "🏔️", "tag": "Paradise Valley",
         "Overview": "Kashmir — 'Paradise on Earth' — is a tapestry of snow-capped peaks, serene lakes, saffron fields and Mughal gardens. The valley sits at ~1,600m elevation, flanked by the Great Himalayas and Pir Panjal range.",
         "Food": "Must-try: Rogan Josh · Wazwan (36-course feast) · Yakhni · Dum Aloo · Kahwa (saffron tea) · Modur Pulao · Seekh Kabab\n\nKashmiri cuisine centres on slow-cooked meats in yoghurt and spice gravies. The Wazwan is a ceremonial 36-course feast — the ultimate expression of Kashmiri hospitality. Kahwa — saffron, cardamom and almond tea — is the valley's warm embrace.",
         "Places to Visit": "Top spots: Dal Lake & Shikara rides · Gulmarg · Pahalgam · Sonamarg Glacier · Leh Palace · Pangong Lake · Vaishno Devi Temple · Mughal Gardens\n\nDal Lake with floating gardens and houseboats is Kashmir's most iconic image. Gulmarg has Asia's highest gondola. Pangong Lake changes colour from blue to green through the day.",
@@ -118,8 +105,7 @@ STATES = {
         "Fun Facts": "• Kashmir produces 90%+ of India's saffron\n• Dal Lake has 50,000+ people living on houseboats\n• Gulmarg has Asia's highest and longest cable car\n• Pangong Lake sits at 4,350m altitude\n• Pashmina wool is among the world's finest textiles",
     },
     "Karnataka": {
-        "emoji": "🏛️",
-        "tag": "Silk & Sandalwood",
+        "emoji": "🏛️", "tag": "Silk & Sandalwood",
         "Overview": "Karnataka — the land of sandalwood, silks and spices — blends ancient temple towns, the IT metropolis of Bengaluru, misty hill stations and pristine coastline. It produces 70% of India's coffee and the finest Mulberry silk in the world.",
         "Food": "Must-try: Bisi Bele Bath · Masala Dosa (origin) · Ragi Mudde · Coorg Pandi Curry · Mysore Pak · Neer Dosa · Mangalorean Fish Curry\n\nUdupi gave the world the masala dosa. Mysore Pak was invented in the Mysore royal kitchen. Coorg's Pandi (pork) Curry is a bold tribal specialty. Bisi Bele Bath is a comforting one-pot classic.",
         "Places to Visit": "Top spots: Hampi (UNESCO) · Mysore Palace · Coorg · Jog Falls · Badami Caves · Chikmagalur Coffee Estates · Bandipur NP · Gokarna Beach\n\nHampi — the ruined Vijayanagara capital — is a surreal boulder landscape. Jog Falls is India's second highest waterfall. Gokarna is a spiritual, quieter alternative to Goa.",
@@ -127,8 +113,7 @@ STATES = {
         "Fun Facts": "• Karnataka produces 70% of India's coffee\n• Bengaluru is Asia's fastest growing tech city\n• Hampi was the 2nd largest city in the world in the 14th century\n• ISRO headquarters is in Bengaluru\n• Has the highest number of UNESCO sites in South India",
     },
     "Himachal Pradesh": {
-        "emoji": "❄️",
-        "tag": "Snow & Temples",
+        "emoji": "❄️", "tag": "Snow & Temples",
         "Overview": "Himachal Pradesh — 'Land of Snow-capped Mountains' — is India's premier hill state. From apple orchards and cedar forests to alpine meadows and glaciated peaks, it is known as 'Dev Bhoomi' (Land of Gods) and India's adventure capital.",
         "Food": "Must-try: Dham (feast) · Siddu (steamed bread) · Chha Gosht · Babru · Aktori (buckwheat pancake) · Madra · Kullu Trout\n\nThe Dham is a traditional feast always cooked by Brahmin cooks. Siddu — steamed bread stuffed with poppy seeds or walnuts with ghee — is deeply comforting in winter. Kullu Trout from Himalayan streams is a delicacy.",
         "Places to Visit": "Top spots: Shimla · Manali & Rohtang Pass · Dharamsala & McLeodGanj · Spiti Valley · Kullu Valley · Kasol · Great Himalayan NP · Khajjiar\n\nShimla was the summer capital of British India. Spiti Valley is a remote high-altitude cold desert. McLeodGanj is the Dalai Lama's residence and a vibrant Tibetan cultural centre.",
@@ -136,8 +121,7 @@ STATES = {
         "Fun Facts": "• Himachal produces 25% of India's apples\n• Snow leopards inhabit Kugti Wildlife Sanctuary\n• Khajjiar is known as India's Mini Switzerland\n• Shimla was the summer capital of British India\n• The state has over 2,000 temples and monasteries",
     },
     "Punjab": {
-        "emoji": "⚔️",
-        "tag": "Five Rivers & Sikhs",
+        "emoji": "⚔️", "tag": "Five Rivers & Sikhs",
         "Overview": "Punjab — the land of five rivers — is India's agricultural powerhouse, producing 40–50% of its wheat and rice. It is the spiritual home of Sikhism. The Golden Temple in Amritsar is reportedly the most visited place in India — surpassing even the Taj Mahal.",
         "Food": "Must-try: Makki di Roti & Sarson da Saag · Amritsari Kulcha · Butter Chicken · Chole Bhature · Lassi · Dal Makhani · Pindi Chhole\n\nButter Chicken and Dal Makhani — now global sensations — were born in Punjab. The winter meal of Makki di Roti and Sarson da Saag with white butter is the soul of rural Punjab.",
         "Places to Visit": "Top spots: Golden Temple · Jallianwala Bagh · Wagah Border · Anandpur Sahib · Qila Mubarak · Maharaja Ranjit Singh Museum · Gobindgarh Fort\n\nThe Golden Temple — covered in 750 kg of gold — feeds 100,000 people daily for free. The Wagah Border sunset ceremony is a spectacular display of nationalism.",
@@ -145,8 +129,7 @@ STATES = {
         "Fun Facts": "• The Golden Temple feeds 100,000 people free daily — world's largest free kitchen\n• Punjab contributes 40–50% of India's wheat to the national grain pool\n• Butter Chicken was invented in Delhi by a Punjabi migrant\n• Bhangra dance originated here and is now a global phenomenon\n• Punjab has one of the highest tractor densities in the world",
     },
     "West Bengal": {
-        "emoji": "🍵",
-        "tag": "Darjeeling & Culture",
+        "emoji": "🍵", "tag": "Darjeeling & Culture",
         "Overview": "West Bengal is India's cultural capital — home of Tagore, Satyajit Ray and Amartya Sen. It stretches from Darjeeling's Himalayan foothills to the Sundarbans mangrove delta. Kolkata's Durga Puja is a UNESCO Intangible Cultural Heritage.",
         "Food": "Must-try: Rosogolla · Macher Jhol · Shorshe Ilish · Luchi & Aloor Dom · Mishti Doi · Kolkata Biryani · Puchka\n\nBengali cuisine is built around fish, mustard oil and milk-based sweets. Ilish (hilsa) is worshipped as a delicacy with its own festival. Kolkata's puchka (pani puri) is considered the best in India.",
         "Places to Visit": "Top spots: Darjeeling (toy train + tea) · Sundarbans NP · Victoria Memorial · Howrah Bridge · Bishnupur Temples · Digha Beach · Hazarduari Palace · Kalimpong\n\nThe Sundarbans is the world's largest mangrove delta. The Darjeeling Himalayan Railway toy train is a UNESCO World Heritage Site.",
@@ -154,8 +137,7 @@ STATES = {
         "Fun Facts": "• Durga Puja is a UNESCO Intangible Cultural Heritage\n• Sundarbans has the world's largest tiger reserve\n• West Bengal produces 25% of India's rice\n• Howrah Bridge has no nuts and bolts — only rivets\n• Darjeeling tea holds a Geographical Indication tag",
     },
     "Andhra Pradesh": {
-        "emoji": "🏺",
-        "tag": "Temples & Coastline",
+        "emoji": "🏺", "tag": "Temples & Coastline",
         "Overview": "Andhra Pradesh is the land of spices, temples and the world's most visited pilgrimage site — Tirupati's Venkateswara Temple. It has the longest eastern coastline in India and rich Buddhist heritage from the Amaravati civilisation.",
         "Food": "Must-try: Pesarattu · Gongura Mutton · Pulihora · Bobbatlu · Kodi Pulusu · Chegodilu · Hyderabadi Biryani\n\nAndhra cuisine is arguably the spiciest in India. Gongura (sorrel leaf) is unique to AP and used in chutneys, meats and pickles. Pesarattu — a green moong dal crepe — is the classic breakfast.",
         "Places to Visit": "Top spots: Tirupati Temple · Araku Valley · Borra Caves · Visakhapatnam Beach · Amaravati Stupa · Nagarjunasagar Dam · Sri Sailam WS · Lepakshi Temple\n\nTirupati is the world's richest and most visited religious site. Araku Valley is accessible by one of India's most scenic train journeys.",
@@ -163,8 +145,7 @@ STATES = {
         "Fun Facts": "• Tirupati earns over ₹650 crore annually — world's richest temple\n• AP has the longest eastern coastline in India\n• Kuchipudi classical dance originated in AP\n• The state produces the most chillies in India\n• AP was the first state to implement e-governance in India",
     },
     "Arunachal Pradesh": {
-        "emoji": "🌿",
-        "tag": "Hidden Shangri-La",
+        "emoji": "🌿", "tag": "Hidden Shangri-La",
         "Overview": "Called 'The Land of the Dawn-Lit Mountains,' Arunachal Pradesh is India's largest north-eastern state and one of the most biodiverse regions on Earth. It is home to 26 major tribes and the first sunrise in India.",
         "Food": "Must-try: Apong (rice beer) · Thukpa · Pika Pila (bamboo shoot) · Smoked Pork with Bamboo · Zan (millet porridge) · Lukter (dried beef) · Marua (millet beer)\n\nArunachali cuisine is flavoured by bamboo shoots, fermented foods and smoked meats. Apong (rice beer) is central to every tribal celebration.",
         "Places to Visit": "Top spots: Tawang Monastery · Ziro Valley · Namdapha NP · Sela Pass · Mechuka Valley · Dirang · Pasighat · Daporijo\n\nTawang Monastery at 10,000 ft is the second largest Buddhist monastery in the world. Ziro Valley is nominated for UNESCO World Heritage.",
@@ -172,8 +153,7 @@ STATES = {
         "Fun Facts": "• Receives India's first sunrise\n• Home to 26 major tribes with distinct languages\n• Tawang is the 2nd largest Buddhist monastery in the world\n• Over 500 species of orchids\n• Namdapha NP is one of the world's biodiversity hotspots",
     },
     "Assam": {
-        "emoji": "🦏",
-        "tag": "Rhinos & Brahmaputra",
+        "emoji": "🦏", "tag": "Rhinos & Brahmaputra",
         "Overview": "Assam — the Gateway to North-East India — has five National Parks and 18 Wildlife Sanctuaries with the highest concentration of wildlife in India. The Brahmaputra River — considered male in Hindu tradition — is the state's lifeline. Assam produces 55% of India's tea.",
         "Food": "Must-try: Masor Tenga · Duck Meat Curry · Khar · Pitha (rice cake) · Bamboo Shoot Pickle · Jolpan · Assam Laksa\n\nAssamese cuisine is light and minimal in spices. Khar — an alkaline preparation from banana peels — is uniquely Assamese. Pitha rice cakes are made in dozens of varieties, especially at Bihu.",
         "Places to Visit": "Top spots: Kaziranga NP (UNESCO) · Majuli River Island · Kamakhya Temple · Manas NP · Sivasagar · Haflong · Dibru-Saikhowa NP · Pobitora WS\n\nKaziranga has two-thirds of the world's one-horned rhinos. Majuli is the world's largest river island. Kamakhya is one of the 51 Shakti Peethas.",
@@ -181,8 +161,7 @@ STATES = {
         "Fun Facts": "• Produces 55% of India's total tea\n• Kaziranga has 70% of the world's one-horned rhinos\n• Majuli is the world's largest river island\n• The Brahmaputra crosses the Himalayas — one of only three rivers to do so\n• Home to the largest population of wild water buffalo",
     },
     "Bihar": {
-        "emoji": "🕉️",
-        "tag": "Buddhist Circuit",
+        "emoji": "🕉️", "tag": "Buddhist Circuit",
         "Overview": "Bihar — from 'Vihara' (monastery) — was the cradle of Buddhism and Jainism, the birthplace of India's first empire (Maurya), and home to Nalanda, the world's first residential university. The Buddha attained enlightenment at Bodh Gaya.",
         "Food": "Must-try: Litti Chokha · Sattu Paratha · Dal Pitha · Makhana Kheer · Tilkut · Chura Dahi · Khaja\n\nLitti Chokha — roasted wheat balls stuffed with sattu served with charred brinjal — is Bihar's most iconic dish. Bihar produces 90% of the world's makhana (fox nuts).",
         "Places to Visit": "Top spots: Bodh Gaya · Nalanda ruins · Rajgir · Vaishali · Vikramshila · Mahabodhi Temple (UNESCO) · Patna Sahib Gurudwara · Valmiki NP\n\nThe Mahabodhi Temple is UNESCO-listed. The Bodhi tree is a direct descendant of the tree under which the Buddha attained enlightenment.",
@@ -190,8 +169,7 @@ STATES = {
         "Fun Facts": "• Nalanda was the world's first residential university\n• Bodh Gaya is one of Buddhism's four holiest sites\n• Bihar produces 90% of the world's makhana (fox nuts)\n• Chandragupta Maurya founded India's first empire here\n• Vaishali is considered the world's first republic (6th century BC)",
     },
     "Chhattisgarh": {
-        "emoji": "🌊",
-        "tag": "Waterfalls & Tribes",
+        "emoji": "🌊", "tag": "Waterfalls & Tribes",
         "Overview": "Chhattisgarh — India's tribal heartland — has 44% forest cover and 32% tribal population. It is home to the widest waterfall in India (Chitrakote Falls) and the most diverse tribal arts in the country.",
         "Food": "Must-try: Chila · Muthia · Fara · Bafauri · Aamat (tribal curry) · Bore Baasi · Sabudana Khichdi\n\nChhattisgarhi food is rice-based, light on spices and rich in indigenous ingredients. Bore Baasi — overnight-soaked rice with curd and onion — is the tribal breakfast. Aamat is a tangy stew with bamboo shoots unique to Bastar.",
         "Places to Visit": "Top spots: Chitrakote Falls · Bastar · Kanker Palace · Sirpur Buddhist Site · Barnawapara WS · Achanakmar Tiger Reserve · Bhoramdeo Temple · Tirathgarh Falls\n\nChitrakote — India's Niagara — swells to 300m wide in monsoon. Bastar's 75-day Dussehra is the world's longest festival.",
@@ -199,8 +177,7 @@ STATES = {
         "Fun Facts": "• Chitrakote Falls is India's widest waterfall\n• Bastar Dussehra is the world's longest festival (75 days)\n• Over 80% of flora not found elsewhere in India\n• Chhattisgarh produces 15% of India's steel\n• Home to rare Gond and Baiga tribal painting traditions",
     },
     "Haryana": {
-        "emoji": "🌾",
-        "tag": "Battlefields & Culture",
+        "emoji": "🌾", "tag": "Battlefields & Culture",
         "Overview": "Haryana — 'Abode of God' — is both ancient and modern. Kurukshetra, where the Mahabharata war was fought, lies here. Yet Gurugram is one of India's fastest-growing tech and financial hubs. Haryana has produced more Olympic medals per capita than any other Indian state.",
         "Food": "Must-try: Bajra Khichdi · Hara Dhania Cholia · Singri ki Sabzi · Methi Gajar · Kachri ki Chutney · Besan Masala Roti · Alsi ki Pinni\n\nHaryanvi food is simple and nourishing. Bajra (pearl millet) is the staple grain. Alsi ki Pinni — flaxseeds, jaggery and ghee — is a winter energy booster.",
         "Places to Visit": "Top spots: Kurukshetra · Sultanpur NP · Pinjore Gardens · Morni Hills · Panipat Museum · Surajkund Craft Fair · Tilyar Lake · Farrukhnagar Step Well\n\nKurukshetra is one of India's most sacred sites. Surajkund Crafts Mela (February) is one of Asia's largest craft fairs.",
@@ -208,8 +185,7 @@ STATES = {
         "Fun Facts": "• India's top producer of milk\n• Won 8 of India's 12 medals at the 2020 Tokyo Olympics\n• Panipat witnessed three decisive battles that shaped Indian history\n• Gurgaon hosts over 250 Fortune 500 companies\n• Home to India's largest solar power plant",
     },
     "Jharkhand": {
-        "emoji": "💧",
-        "tag": "Waterfalls & Forests",
+        "emoji": "💧", "tag": "Waterfalls & Forests",
         "Overview": "Jharkhand — 'Land of the Forest' — has India's richest mineral reserves yet also some of its most beautiful waterfalls, dense Sal forests and vibrant tribal traditions. Known as the 'Ruhr of India' for its industrial wealth.",
         "Food": "Must-try: Dhuska · Rugra (forest mushroom curry) · Chilka Roti · Litti Chokha · Bamboo Shoot Curry · Handia (rice beer) · Maro (millet porridge)\n\nRugra — a wild mushroom found only in Sal forests — is a seasonal delicacy. Handia rice beer is consumed at every tribal celebration. Dhuska is a crispy fried bread from soaked rice and lentils.",
         "Places to Visit": "Top spots: Hundru Falls · Betla NP · Netarhat · Jonha Falls · Deoghar Baidyanath Dham · Rajmahal Hills · Parasnath Hill · Dasam Falls\n\nHundru Falls drops 98m — one of India's highest. Netarhat is the 'Queen of Chotanagpur' for its sweeping sunrises. Baidyanath Dham is one of the 12 Jyotirlingas.",
@@ -217,8 +193,7 @@ STATES = {
         "Fun Facts": "• Richest mineral reserves in India\n• Hundru Falls drops 98m — one of India's highest\n• 28% of India's coal reserves are in Jharkhand\n• Parasnath Hill is the holiest Jain pilgrimage site\n• Jharkhand produces the most lac (shellac) in the world",
     },
     "Madhya Pradesh": {
-        "emoji": "🐯",
-        "tag": "Tigers & Temples",
+        "emoji": "🐯", "tag": "Tigers & Temples",
         "Overview": "Madhya Pradesh — 'Heart of India' — has more UNESCO World Heritage Sites than any other Indian state and more tiger reserves than any other state. The Narmada River — one of India's seven sacred rivers — flows entirely through MP.",
         "Food": "Must-try: Dal Bafla · Poha Jalebi (Indore) · Bhutte ki Kees · Chakki ki Shaak · Mawa Bati · Sabudana Khichdi · Shikanji\n\nIndore's food scene is legendary — Sarafa Bazaar and Chappan Dukan are famous food streets. Poha-Jalebi is Indore's signature breakfast loved all over India.",
         "Places to Visit": "Top spots: Khajuraho (UNESCO) · Sanchi Stupa (UNESCO) · Bhimbetka (UNESCO) · Kanha Tiger Reserve · Bandhavgarh NP · Pachmarhi · Mandu · Omkareshwar\n\nKhajuraho's 10th-century temples are among the world's finest medieval Indian art. Bandhavgarh has the highest density of tigers in India.",
@@ -226,8 +201,7 @@ STATES = {
         "Fun Facts": "• 3 UNESCO World Heritage Sites — more than any other state\n• Bandhavgarh has the world's highest density of Bengal tigers\n• MP has the most tiger reserves in India (7 reserves)\n• Bhimbetka cave paintings are 30,000 years old\n• The Narmada River flows 1,077 km entirely through MP",
     },
     "Maharashtra": {
-        "emoji": "🏰",
-        "tag": "Forts & Festivals",
+        "emoji": "🏰", "tag": "Forts & Festivals",
         "Overview": "Maharashtra — India's wealthiest state — blends Maratha glory, Bollywood glamour, Konkan coastline and Mumbai's financial might. Shivaji Maharaj built 300+ forts across the Western Ghats that remain symbols of pride and popular trekking destinations.",
         "Food": "Must-try: Vada Pav · Misal Pav · Puran Poli · Modak · Kolhapuri Chicken · Sol Kadhi · Thali Peeth\n\nVada Pav — deep-fried potato dumpling in a bread roll — is Mumbai's beloved street food. Modak — steamed rice dumpling with coconut and jaggery — is Lord Ganesha's favourite, made by millions at Ganesh Chaturthi.",
         "Places to Visit": "Top spots: Ajanta & Ellora (UNESCO) · Gateway of India · Lonavala & Mahabaleshwar · Shirdi · Kolhapur · Daulatabad Fort · Nashik · Tadoba Tiger Reserve\n\nAjanta and Ellora cave temples span 2nd century BC to 10th century AD. Nashik is India's wine capital and hosts the Kumbh Mela.",
@@ -235,8 +209,7 @@ STATES = {
         "Fun Facts": "• Maharashtra is India's wealthiest state by GDP\n• Mumbai produces 1,000+ Bollywood films per year\n• Ajanta cave paintings are 2,000 years old\n• More Shiva temples than any other state\n• Wari pilgrimage to Pandharpur draws 10 million people annually",
     },
     "Manipur": {
-        "emoji": "🌺",
-        "tag": "Polo & Floating Park",
+        "emoji": "🌺", "tag": "Polo & Floating Park",
         "Overview": "Manipur — 'the Jewel of India' — is celebrated for Manipuri dance, unique cuisine, the world's only floating national park (Keibul Lamjao), and the birthplace of Polo. Loktak Lake is the largest freshwater lake in north-east India.",
         "Food": "Must-try: Eromba · Singju · Chamthong · Ngari (fermented fish) · Paknam · Chak-hao Kheer (black rice pudding) · Morok Metpa\n\nNgari (fermented fish) is the backbone of Manipuri cooking. Chak-hao — GI-tagged black rice — is unique to Manipur. Eromba — mashed vegetables with fermented fish — is pungent and addictive.",
         "Places to Visit": "Top spots: Loktak Lake · Keibul Lamjao (floating NP) · Kangla Fort · Ima Keithel (women's market) · Shirui Lily Festival · Dzüko Valley · Moirang · Khonghampat Orchidarium\n\nIma Keithel is the world's only all-women market, 500+ years old. Dzüko Valley is a pristine alpine valley blanketed in wildflowers.",
@@ -244,8 +217,7 @@ STATES = {
         "Fun Facts": "• Polo originated in Manipur (1st century AD)\n• Keibul Lamjao is the world's only floating national park\n• Ima Keithel is the world's only all-women market (500+ years)\n• Chak-hao black rice has a GI tag\n• Manipuri dance is one of India's 8 classical dance forms",
     },
     "Meghalaya": {
-        "emoji": "🌧️",
-        "tag": "Wettest Place on Earth",
+        "emoji": "🌧️", "tag": "Wettest Place on Earth",
         "Overview": "Meghalaya — 'Abode of the Clouds' — is India's wettest state. Cherrapunjee and Mawsynram compete for the title of the world's wettest place. The state is home to matrilineal Khasi, Jaintia and Garo tribes and miraculous living root bridges.",
         "Food": "Must-try: Jadoh (rice & pork) · Tungrymbai (fermented soya) · Doh Khleh · Nakham Bitchi · Putharo · Minil Songa · Sakin Gata\n\nMeghalayan food is tribal and forest-based — pork, fermented soya and bamboo shoots dominate. Jadoh is the everyday Khasi staple. Tungrymbai has a deeply pungent, savoury flavour.",
         "Places to Visit": "Top spots: Living Root Bridges · Dawki River · Mawlynnong (Asia's cleanest village) · Elephant Falls · Ward's Lake · Nohkalikai Falls · Umiam Lake · Balpakram NP\n\nLiving root bridges — grown over 500 years — are remarkable bio-engineering. The Dawki River is so clear boats appear to float on air.",
@@ -253,8 +225,7 @@ STATES = {
         "Fun Facts": "• World's two wettest places — Mawsynram & Cherrapunjee — are both here\n• Living root bridges are grown, not built — over 500 years old\n• One of three Indian states with a matrilineal society\n• Dawki River boats appear to float on air\n• Krem Puri is the world's longest sandstone cave (31 km)",
     },
     "Mizoram": {
-        "emoji": "🎋",
-        "tag": "Bamboo Forests & Mist",
+        "emoji": "🎋", "tag": "Bamboo Forests & Mist",
         "Overview": "Mizoram — 'Land of the Hill People' — has 91%+ literacy, is over 90% Christian, and is deeply musical. Its rolling bamboo-covered hills, clean towns and hospitable Mizo people make it unlike any other Indian state.",
         "Food": "Must-try: Bai · Vawksa Rep (smoked pork) · Mizo Sawhchiar · Bamboo Shoot Fry · Chhum Han · Arsa Buhchiar · Zu (rice wine)\n\nVawksa Rep — smoked pork — is the cornerstone of Mizo cooking. Bai (boiled vegetables with pork and fermented soya) is the everyday staple. Zu rice wine is prepared at home for every festival.",
         "Places to Visit": "Top spots: Phawngpui (Blue Mountain) · Vantawng Falls · Reiek Heritage Village · Champhai Valley · Palak Lake · Murlen NP · Aizawl viewpoints · Tam Dil Lake\n\nPhawngpui — the Blue Mountain at 2,157m — is sacred to the Mizo people. Champhai Valley is the 'Rice Bowl of Mizoram.'",
@@ -262,8 +233,7 @@ STATES = {
         "Fun Facts": "• 91%+ literacy — second highest in India\n• Over 90% Christian population\n• Cheraw (bamboo dance) is the iconic cultural art form\n• Mizoram experiences Mautam — bamboo flowering every 48 years causing a rodent plague\n• Phawngpui is the Blue Mountain, sacred to the Mizo people",
     },
     "Nagaland": {
-        "emoji": "🦅",
-        "tag": "Hornbill Festival",
+        "emoji": "🦅", "tag": "Hornbill Festival",
         "Overview": "Nagaland — 'Land of the Nagas' — has 16 major tribes, each with distinct languages, dress, food and traditions. The annual Hornbill Festival is one of Asia's most spectacular cultural events. The Ghost Pepper (Bhut Jolokia), once the world's hottest chilli, grows here.",
         "Food": "Must-try: Smoked Pork with Bamboo Shoot · Axone (fermented soya) · Galho · Zutho (rice beer) · Akhuni Chutney · Naga Chilli dishes\n\nNaga cuisine is bold, smoky and intensely flavoured. Axone is the pungent foundation of Naga cooking. The Bhut Jolokia (Ghost Pepper) was once the world's hottest chilli. Smoked meat techniques are unique to each tribe.",
         "Places to Visit": "Top spots: Hornbill Festival (Kisama) · Kohima War Cemetery · Dzüko Valley · Pfütsero · Khonoma Green Village · Japfu Peak Trek · Longwa Village · Touphema\n\nKohima War Cemetery honours Allied soldiers from one of WWII's fiercest battles. Longwa Village straddles the India-Myanmar border.",
@@ -271,8 +241,7 @@ STATES = {
         "Fun Facts": "• 16 major tribes each with distinct culture\n• Ghost Pepper (Bhut Jolokia) — once world's hottest chilli — is from Nagaland\n• Kohima War Cemetery is one of Asia's most moving WWII memorials\n• Khonoma is India's first green village\n• Longwa Village chief's house straddles the India-Myanmar border",
     },
     "Odisha": {
-        "emoji": "🎭",
-        "tag": "Temples & Odissi Dance",
+        "emoji": "🎭", "tag": "Temples & Odissi Dance",
         "Overview": "Odisha is home to the sacred Jagannath Temple at Puri, the erotic masterpieces of Konark Sun Temple and the Buddhist stupa at Dhauli. Odisha's Pattachitra paintings, Odissi dance and tribal crafts are internationally recognised art forms. The English word 'Juggernaut' comes from Jagannath.",
         "Food": "Must-try: Dalma · Pakhala Bhaat · Machha Besara · Chhena Poda · Rasgulla · Santula · Mudhi Mansa\n\nOdia cuisine is mild and flavoured by mustard and coconut. Pakhala Bhaat — rice soaked overnight — is one of the world's oldest fermented foods. Chhena Poda is a caramelised cottage cheese dessert — one of India's most unique sweets.",
         "Places to Visit": "Top spots: Puri Jagannath Temple · Konark Sun Temple (UNESCO) · Chilika Lake · Bhubaneswar · Simlipal NP · Dhauli Buddhist Stupa · Bhitarkanika · Rath Yatra\n\nKonark Sun Temple — a 13th-century chariot-shaped temple — is one of the world's greatest architectural achievements. Chilika Lake is Asia's largest brackish water lake.",
@@ -280,103 +249,136 @@ STATES = {
         "Fun Facts": "• 'Juggernaut' in English comes from Jagannath\n• Konark is called the 'Black Pagoda' by sailors\n• Bhubaneswar has 242 temples alone\n• Odisha Rasagola has a GI tag separate from Bengal's Rosogolla\n• Chilika Lake hosts 160 species of migratory birds in winter",
     },
     "Sikkim": {
-        "emoji": "🌸",
-        "tag": "Himalayan Wonderland",
+        "emoji": "🌸", "tag": "Himalayan Wonderland",
         "Overview": "Sikkim — India's smallest state — is arguably its most naturally spectacular. Home to Kangchenjunga (world's 3rd highest mountain at 8,586m), it was an independent Buddhist kingdom until 1975 and became India's first fully organic state in 2016.",
         "Food": "Must-try: Phagshapa · Gundruk · Momo · Thukpa · Chhurpi (hard cheese) · Sel Roti · Tongba (millet beer)\n\nSikkimese cuisine reflects Nepali, Tibetan and Lepcha roots. Momo — steamed dumplings — are everywhere and deeply addictive. Tongba is a fermented millet drink served hot in a bamboo mug — perfect for cold mountain evenings.",
         "Places to Visit": "Top spots: Kangchenjunga · Gurudongmar Lake · Rumtek Monastery · Pelling · Tsomgo Lake · Yumthang Valley · Namchi · Ravangla Buddha Park\n\nGurudongmar Lake at 17,100 ft is one of the world's highest lakes. Yumthang Valley bursts into rhododendron colour in spring.",
         "Best Time": "March–May (rhododendron bloom) and October–December (clear mountain views). Losar — Tibetan New Year (Feb/Mar) — is the biggest festival.",
         "Fun Facts": "• Was an independent Buddhist kingdom until 1975\n• India's first fully organic farming state (2016)\n• Kangchenjunga is the world's 3rd highest mountain at 8,586m\n• Gurudongmar Lake is one of the world's highest lakes at 17,100 ft\n• Over 600 species of orchids — highest density in India",
     },
+
+    "Tamil Nadu": {
+        "emoji": "🏛️",
+        "tag": "Temples & Classical Arts",
+        "Overview": "Tamil Nadu — the Land of Temples — is home to the world's oldest living classical language (Tamil, 2,000+ years) and some of India's most magnificent Dravidian architecture. The state has the largest number of temples in the country. With 1,076 km of coastline, ancient port cities, and the Bharatanatyam classical dance form, it is one of India's most culturally rich states.",
+        "Food": "Must-try: Idli-Sambar · Dosa · Chettinad Chicken Curry · Pongal · Rasam · Filter Coffee · Murukku\n\nTamil cuisine is one of India's oldest culinary traditions. Chettinad cooking is globally famous for bold spices like kalpasi. Filter coffee served in a steel tumbler-davara is a daily ritual. Idli and dosa from Tamil Nadu are considered the originals.",
+        "Places to Visit": "Top spots: Meenakshi Temple (Madurai) · Brihadeeswarar Temple (Thanjavur) · Marina Beach (Chennai) · Ooty (Nilgiris) · Mahabalipuram (UNESCO) · Rameswaram · Kodaikanal\n\nThe Meenakshi Temple has 14 towering gopurams covered in thousands of colourful sculptures. Mahabalipuram's shore temple is a UNESCO World Heritage Site. Marina Beach is the world's second longest urban beach.",
+        "Best Time": "November to March is ideal. Pongal (January) is Tamil Nadu's most important festival — celebrated with kolam drawings and harvest rituals. Avoid April–June (very hot and humid).",
+        "Fun Facts": "• Tamil is the world's oldest living classical language (2,000+ years)\n• Tamil Nadu has 38,000+ temples — highest in India\n• Marina Beach in Chennai is the world's second longest urban beach\n• The Nilgiri Mountain Railway (Ooty toy train) is a UNESCO World Heritage Site\n• Bharatanatyam classical dance originated in Tamil Nadu",
+    },
+    "Telangana": {
+        "emoji": "🕌",
+        "tag": "Nizams & Pearls",
+        "Overview": "Telangana — India's youngest state (formed 2014) — is built on the legacy of the Nizam dynasty, one of history's wealthiest rulers. Hyderabad is a city of iconic biryani, pearls, historic forts and a booming IT industry earning it the nickname 'Cyberabad.' The state has 69 wildlife sanctuaries — the highest number of any Indian state.",
+        "Food": "Must-try: Hyderabadi Dum Biryani · Haleem · Sarva Pindi · Jonna Roti · Gongura Pachadi · Qubani ka Meetha · Osmania Biscuit\n\nHyderabadi Biryani — cooked in the dum (sealed pot) style — is one of the most celebrated dishes in India. Haleem has a GI tag from Hyderabad and is served especially during Ramadan. Osmania biscuit from the Nizam era is a beloved teatime staple.",
+        "Places to Visit": "Top spots: Charminar · Golconda Fort · Ramoji Film City · Hussain Sagar Lake · Warangal Fort · Nagarjuna Sagar Dam · Laad Bazaar (pearls)\n\nCharminar is Hyderabad's most iconic 16th-century monument. Golconda Fort was once the diamond trading capital of the world — the Kohinoor diamond originated here. Ramoji Film City is the world's largest integrated film studio (Guinness record).",
+        "Best Time": "October to March. Hyderabad Deccan Festival (February) and Bathukamma flower festival (October) are major cultural highlights.",
+        "Fun Facts": "• Telangana has 69 wildlife sanctuaries — highest in India\n• The Kohinoor diamond was mined in Golconda, Hyderabad\n• Hyderabadi Haleem has a Geographical Indication tag\n• Ramoji Film City is the world's largest integrated film studio (Guinness record)\n• Hyderabad is India's second largest IT hub — called 'Cyberabad'",
+    },
+    "Tripura": {
+        "emoji": "🌿",
+        "tag": "Bamboo & Royals",
+        "Overview": "Tripura — surrounded by Bangladesh on three sides — is a small hilly state with a rich royal heritage from the Manikya dynasty. Despite its small size, it is India's third most densely populated state. Tripura is a leading rubber producer and home to a unique blend of Bengali and tribal cultures.",
+        "Food": "Must-try: Mui Borok (tribal cuisine) · Chakhwi · Berma (fermented fish) · Wahan Mosdeng (pork with chilli) · Gudok · Muya Awandru (bamboo shoot curry)\n\nTripuri tribal cuisine centres on fermented and smoked ingredients. Berma — fermented dried fish — is the backbone of most dishes. Bamboo shoot features in almost every meal. The food is simple, earthy and unmistakably north-eastern in character.",
+        "Places to Visit": "Top spots: Ujjayanta Palace (Agartala) · Neermahal Water Palace · Unakoti Rock Carvings · Sepahijala Wildlife Sanctuary · Jampui Hills · Tripura Sundari Temple\n\nNeermahal — a royal water palace built in the middle of a lake — is one of north-east India's most photogenic monuments. Unakoti has thousands of ancient rock carvings dating back to the 7th–9th centuries.",
+        "Best Time": "October to March. Garia Puja (April) and Kharchi Puja (July) are the state's most important tribal festivals.",
+        "Fun Facts": "• Tripura is surrounded by Bangladesh on three sides\n• Neermahal is one of India's two water palaces\n• Tripura is India's third largest rubber producer\n• Unakoti has rock carvings of nearly 10 million deities\n• Tripura produces some of India's finest bamboo crafts",
+    },
+    "Uttarakhand": {
+        "emoji": "⛰️",
+        "tag": "Dev Bhoomi & Himalayas",
+        "Overview": "Uttarakhand — 'Dev Bhoomi' (Land of Gods) — is the source of two of India's holiest rivers: the Ganga (at Gangotri) and the Yamuna (at Yamunotri). It is home to the Char Dham pilgrimage circuit, Jim Corbett National Park (India's oldest), and the UNESCO-listed Valley of Flowers.",
+        "Food": "Must-try: Aloo Ke Gutke · Kafuli (spinach curry) · Bal Mithai (Almora sweet) · Singori · Jhangora ki Kheer · Phaanu (lentil curry) · Chainsoo\n\nUttarakhand cuisine is simple, wholesome mountain food. Kafuli is a thick spinach and fenugreek curry. Bal Mithai — a dark chocolate-like fudge covered in white sugar balls from Almora — is the state's most beloved sweet.",
+        "Places to Visit": "Top spots: Char Dham (Gangotri, Yamunotri, Kedarnath, Badrinath) · Jim Corbett NP · Valley of Flowers (UNESCO) · Rishikesh · Haridwar · Auli (skiing) · Nainital · Mussoorie\n\nRishikesh is the 'Yoga Capital of the World' and a hub for white-water rafting. The Valley of Flowers is a UNESCO World Heritage Site. Haridwar hosts the Kumbh Mela every 12 years.",
+        "Best Time": "March–June for treks and pilgrimage. October–November for clear skies. December–February for skiing at Auli. Char Dham opens April–November.",
+        "Fun Facts": "• Uttarakhand is the source of the Ganga and Yamuna rivers\n• Jim Corbett is India's oldest national park (established 1936)\n• Valley of Flowers is a UNESCO World Heritage Site\n• Rishikesh is the 'Yoga Capital of the World'\n• Auli is India's premier ski resort at 2,500m altitude",
+    },
+    "Delhi": {
+        "emoji": "🏙️",
+        "tag": "Capital & History",
+        "Overview": "Delhi — India's National Capital Territory — has 3,000+ years of history and has been the seat of numerous empires including the Mughals and the British. Old Delhi and New Delhi exist side by side — one a Mughal-era labyrinth of lanes, the other a planned colonial capital. It has three UNESCO World Heritage Sites.",
+        "Food": "Must-try: Chole Bhature · Butter Chicken (invented here) · Stuffed Paranthas (Paranthe Wali Gali) · Daulat ki Chaat · Jalebi · Nihari · Kebabs from Karim's\n\nDelhi's street food scene is legendary. Chandni Chowk's Paranthe Wali Gali serves stuffed parathas since 1875. Karim's near Jama Masjid has served Mughlai food since 1913. Daulat ki Chaat is a seasonal foam dessert unique to Delhi.",
+        "Places to Visit": "Top spots: Red Fort (UNESCO) · Qutub Minar (UNESCO) · Humayun's Tomb (UNESCO) · India Gate · Lotus Temple · Akshardham Temple · Jama Masjid · Chandni Chowk\n\nDelhi has three UNESCO World Heritage Sites. The Red Fort was the residence of Mughal emperors for 200 years. Qutub Minar at 73m is the world's tallest brick minaret.",
+        "Best Time": "October to March. Republic Day parade (January 26) is spectacular. Avoid May–June (45°C+).",
+        "Fun Facts": "• Delhi has 3 UNESCO World Heritage Sites\n• Qutub Minar is the world's tallest brick minaret at 73m\n• Delhi has been capital of 7 major empires in history\n• Butter Chicken was invented at Moti Mahal restaurant in Delhi (1950s)\n• Delhi Metro is one of Asia's largest metro systems",
+    },
+    "Ladakh": {
+        "emoji": "🏔️",
+        "tag": "High-Altitude Desert",
+        "Overview": "Ladakh — 'Land of High Passes' — is a Union Territory at an average altitude of 3,500m, one of the highest inhabited regions on Earth. Flanked by the Himalayas and Karakoram ranges, it is a cold desert of stunning stark beauty, ancient Buddhist monasteries, and some of the world's most dramatic trekking routes.",
+        "Food": "Must-try: Thukpa · Momos · Tsampa (roasted barley flour) · Skyu (pasta with root vegetables) · Butter Tea (Po Cha) · Chang (barley beer) · Chhurpe (hard yak cheese)\n\nLadakhi cuisine is Tibetan-influenced and built for altitude and cold. Butter Tea (Po Cha) — made with yak butter and salt — is essential for warmth at high altitude. Chang (barley beer) is brewed at home for festivals.",
+        "Places to Visit": "Top spots: Pangong Lake · Nubra Valley (Bactrian camels) · Khardung La (one of world's highest roads) · Hemis Monastery · Leh Palace · Magnetic Hill · Zanskar Valley · Tso Moriri Lake\n\nPangong Lake at 4,350m changes colour multiple times through the day and spans India and China. Nubra Valley is a high-altitude desert with Bactrian camels.",
+        "Best Time": "June to September (roads open). January–February for the Chadar Trek (frozen Zanskar river). Hemis Festival (June/July) is a spectacular masked dance celebration.",
+        "Fun Facts": "• Ladakh sits at an average altitude of 3,500m — one of Earth's highest inhabited regions\n• Pangong Lake spans India and China — only 45% is in India\n• Khardung La at 5,359m is one of the world's highest motorable roads\n• Highest concentration of Buddhist monasteries in the world\n• The Chadar Trek on the frozen Zanskar river is one of the world's most extreme treks",
+    },
+    "Puducherry": {
+        "emoji": "🥖",
+        "tag": "French Riviera of the East",
+        "Overview": "Puducherry (Pondicherry) was a French colony for 138 years and retains a unique Franco-Tamil character. The French Quarter (White Town) has bougainvillea-draped colonial villas, French cafes, and yellow-painted police officers. Sri Aurobindo Ashram and the experimental township of Auroville make it a global spiritual destination.",
+        "Food": "Must-try: Bouillabaisse (French fish stew) · Crepes & Croissants · Coconut-based Tamil curries · Prawn dishes · Puducherry Baguette · Café de Flore coffee\n\nPuducherry's cuisine is a delightful fusion of French and Tamil flavours. The French Quarter has authentic patisseries. Tamil coconut-based seafood curries are equally present. Fresh baguettes with spicy curries is uniquely Pondicherrian.",
+        "Places to Visit": "Top spots: French Quarter (White Town) · Promenade Beach · Sri Aurobindo Ashram · Auroville · Basilica of the Sacred Heart · Immaculate Conception Cathedral · Serenity Beach\n\nAuroville is an experimental international township built in 1968 with 3,000 residents from 60 countries. The Matrimandir — a golden geodesic dome — is its meditative heart.",
+        "Best Time": "October to February. Avoid November–December (cyclone season on east coast). Bastille Day (July 14) is celebrated here with French flair!",
+        "Fun Facts": "• Puducherry was a French colony for 138 years — handed over to India in 1954\n• Auroville has 3,000 residents from 60 countries\n• The Matrimandir in Auroville has the world's largest optically perfect glass sphere\n• Highest density of French colonial architecture outside France\n• French Quarter police wear red-and-black French-style uniforms",
+    },
+    "Chandigarh": {
+        "emoji": "🌳",
+        "tag": "Planned City & Gardens",
+        "Overview": "Chandigarh — the first planned city of independent India — was designed by legendary architect Le Corbusier and is a masterpiece of modernist urban planning. It serves as the joint capital of Punjab and Haryana and consistently ranks among India's cleanest and wealthiest cities.",
+        "Food": "Must-try: Butter Chicken · Chole Bhature · Sarson da Saag with Makki di Roti · Dahi Bhalla · Amritsari Fish · Lassi · Pinni (wheat sweet)\n\nChandigarh's food scene reflects its Punjabi soul — rich, generous and dairy-forward. Sector 17 and Sector 22 food streets are the city's dining heart. Lassi here is thick, creamy and served in tall clay mugs.",
+        "Places to Visit": "Top spots: Rock Garden (made from industrial waste) · Sukhna Lake · Rose Garden · Le Corbusier Centre · Capitol Complex (UNESCO) · Pinjore Gardens · Sector 17 Plaza\n\nThe Rock Garden — created by Nek Chand from 5 million pieces of recycled waste — is one of India's most unique art installations. The Capitol Complex is a UNESCO World Heritage Site designed by Le Corbusier.",
+        "Best Time": "October to March. The Rose Festival (February/March) at the Rose Garden — one of Asia's largest — is spectacular with 50,000+ roses in bloom.",
+        "Fun Facts": "• Chandigarh was designed by legendary architect Le Corbusier\n• Capitol Complex is a UNESCO World Heritage Site\n• Rock Garden uses 5 million pieces of waste material\n• Chandigarh has the highest per capita income among Indian UTs\n• The city is divided into numbered sectors — a modernist urban planning experiment",
+    },
+    "Andaman & Nicobar Islands": {
+        "emoji": "🏝️",
+        "tag": "Tropical Paradise",
+        "Overview": "The Andaman & Nicobar Islands comprise 572 islands in the Bay of Bengal, only 38 inhabited. With crystal-clear turquoise waters, pristine coral reefs, dense rainforests and the historic Cellular Jail (Kala Pani), it is one of India's most remote and breathtaking destinations. The indigenous Sentinelese tribe is one of the world's last uncontacted peoples.",
+        "Food": "Must-try: Coconut Prawn Curry · Fish Tikka · Grilled Lobster · Red Snapper · Coconut Rice · Banana Flower Curry · Fresh seafood platters\n\nAndaman cuisine is dominated by fresh seafood and coconut. Fish, prawn and lobster are incredibly fresh and cooked simply. The influence of Bengali, South Indian and Malay cuisines creates a unique fusion.",
+        "Places to Visit": "Top spots: Radhanagar Beach (Havelock Island) · Cellular Jail (Kala Pani, Port Blair) · Baratang Island (limestone caves) · Neil Island · Barren Island (active volcano) · Ross Island · Mahatma Gandhi Marine NP (diving)\n\nRadhanagar Beach has been rated one of Asia's best beaches by Time magazine. Cellular Jail is a deeply moving national memorial. Barren Island is India's only confirmed active volcano.",
+        "Best Time": "November to April — calm seas and excellent diving visibility. Avoid May–October (monsoon and rough seas). Best diving December–February.",
+        "Fun Facts": "• 572 islands — only 38 inhabited\n• The Sentinelese tribe is one of the world's last uncontacted peoples\n• Radhanagar Beach rated Asia's best beach by Time magazine\n• Barren Island is India's only confirmed active volcano\n• Cellular Jail (Kala Pani) housed Indian freedom fighters during British rule",
+    },
+    "Lakshadweep": {
+        "emoji": "🪸",
+        "tag": "Coral Islands",
+        "Overview": "Lakshadweep — 'One Hundred Thousand Islands' — is India's smallest Union Territory and only coral island group. Situated in the Arabian Sea with 36 islands (11 inhabited), it has some of the world's most pristine coral reefs, turquoise lagoons and white sandy beaches. Strict entry permits have kept it one of India's last true paradises.",
+        "Food": "Must-try: Tuna Fish Curry · Octopus fry · Mas Riha (tuna coconut curry) · Kada Curry (coconut chicken) · Fried Breadfruit · Coconut milk rice · Banana chips\n\nLakshadweep cuisine is almost entirely based on tuna and coconut. The food is light, mildly spiced and aromatic. Since the population is almost entirely Muslim, there is no beef or pork. Tuna is eaten at virtually every meal.",
+        "Places to Visit": "Top spots: Agatti Island (entry point) · Bangaram Island (snorkelling & diving) · Kavaratti (capital, mosques) · Minicoy Island (lighthouse) · Kalpeni Island (coral lagoon) · Kadmat Island (water sports)\n\nBangaram Island is uninhabited except for a single eco-resort with world-class snorkelling. The lagoons are so clear you can see the reef from above.",
+        "Best Time": "October to April — calm seas. Best diving November–March. Entry requires a special permit from the Lakshadweep Administration — plan well ahead.",
+        "Fun Facts": "• India's smallest Union Territory by area\n• Has over 90% intact coral cover — among the world's highest\n• Only 1–2 metres above sea level — extremely vulnerable to climate change\n• Entry requires a special government permit\n• Almost entirely Muslim population — unique culture in peninsular India",
+    },
+    "Dadra & Nagar Haveli and Daman & Diu": {
+        "emoji": "🏖️",
+        "tag": "Portuguese Heritage & Beaches",
+        "Overview": "This Union Territory — created in 2020 by merging two former Portuguese colonies — consists of coastal Daman and Diu with Portuguese forts and beaches, and the inland forested Dadra & Nagar Haveli home to Kokna and Varli tribal communities. The entire UT was under Portuguese rule until 1961.",
+        "Food": "Must-try: Seafood (prawn, crab, pomfret) · Vindaloo · Sorpotel · Bebinca · Feni (local spirit) · Coconut curries · Rice and fish\n\nThe coastal regions share a food culture with Goa — Portuguese influence is strong. Vindaloo, Sorpotel and Bebinca are common. Fresh seafood is cooked simply with local spices. Feni (cashew or coconut liquor) is widely available.",
+        "Places to Visit": "Top spots: Daman Fort · Moti Daman (Old City) · Naida Caves (Diu) · St. Paul's Church (Diu) · Devka Beach (Daman) · Nagoa Beach (Diu) · Vansda National Park\n\nThe Diu Fort overlooking the Arabian Sea is one of India's finest Portuguese forts. Naida Caves are an unusual network formed from Portuguese quarried stone.",
+        "Best Time": "October to March. Popular weekend getaway from Mumbai and Surat. Diu is one of the few places in Gujarat where alcohol is legally available.",
+        "Fun Facts": "• Formed in 2020 by merging two separate Union Territories\n• Daman and Diu were Portuguese colonies until 1961 — 14 years after Independence\n• Diu is one of the few places in Gujarat where alcohol is legally available\n• Diu Fort repelled three separate Mughal sieges — never captured in battle\n• Vansda National Park has one of India's highest densities of leopards",
+    },
 }
 
 TABS = ["Overview", "Food", "Places to Visit", "Best Time", "Fun Facts"]
 
 QUIZ_QUESTIONS = [
-    {
-        "q": "Which state is home to the world's only wild Asiatic Lions?",
-        "options": ["Rajasthan", "Gujarat", "Maharashtra", "Karnataka"],
-        "ans": "Gujarat",
-    },
-    {
-        "q": "Which Indian state receives the country's first sunrise?",
-        "options": ["Meghalaya", "Nagaland", "Arunachal Pradesh", "Assam"],
-        "ans": "Arunachal Pradesh",
-    },
-    {
-        "q": "The English word 'Juggernaut' comes from which temple?",
-        "options": ["Tirupati", "Jagannath (Puri)", "Somnath", "Konark"],
-        "ans": "Jagannath (Puri)",
-    },
-    {
-        "q": "Which state produces 55% of India's total tea output?",
-        "options": ["West Bengal", "Assam", "Kerala", "Himachal Pradesh"],
-        "ans": "Assam",
-    },
-    {
-        "q": "Polo — the sport — originated in which Indian state?",
-        "options": ["Rajasthan", "Manipur", "Punjab", "Gujarat"],
-        "ans": "Manipur",
-    },
-    {
-        "q": "Which festival lasts 75 days — the world's longest festival?",
-        "options": [
-            "Pushkar Camel Fair",
-            "Hornbill Festival",
-            "Bastar Dussehra",
-            "Onam",
-        ],
-        "ans": "Bastar Dussehra",
-    },
-    {
-        "q": "Which state was India's first to become fully organic?",
-        "options": ["Kerala", "Sikkim", "Uttarakhand", "Nagaland"],
-        "ans": "Sikkim",
-    },
-    {
-        "q": "The Ghost Pepper (Bhut Jolokia) — once world's hottest chilli — grows in which state?",
-        "options": ["Andhra Pradesh", "Karnataka", "Nagaland", "Rajasthan"],
-        "ans": "Nagaland",
-    },
-    {
-        "q": "Which lake is the world's only floating national park?",
-        "options": ["Loktak Lake", "Dal Lake", "Chilika Lake", "Umiam Lake"],
-        "ans": "Loktak Lake",
-    },
-    {
-        "q": "Mawsynram and Cherrapunjee are both in which state?",
-        "options": ["Assam", "Mizoram", "Nagaland", "Meghalaya"],
-        "ans": "Meghalaya",
-    },
-    {
-        "q": "Which state has the world's largest free kitchen?",
-        "options": ["Rajasthan", "Gujarat", "Punjab", "Maharashtra"],
-        "ans": "Punjab",
-    },
-    {
-        "q": "Namdapha National Park is located in which state?",
-        "options": ["Assam", "Arunachal Pradesh", "Meghalaya", "Manipur"],
-        "ans": "Arunachal Pradesh",
-    },
-    {
-        "q": "Bhimbetka cave paintings are approximately how old?",
-        "options": ["5,000 years", "10,000 years", "30,000 years", "1,000 years"],
-        "ans": "30,000 years",
-    },
-    {
-        "q": "Which state is known as 'Dev Bhoomi' (Land of Gods)?",
-        "options": ["Uttarakhand", "Himachal Pradesh", "Rajasthan", "Bihar"],
-        "ans": "Himachal Pradesh",
-    },
-    {
-        "q": "Kuchipudi classical dance originated in which state?",
-        "options": ["Tamil Nadu", "Kerala", "Karnataka", "Andhra Pradesh"],
-        "ans": "Andhra Pradesh",
-    },
+    {"q": "Which state is home to the world's only wild Asiatic Lions?", "options": ["Rajasthan", "Gujarat", "Maharashtra", "Karnataka"], "ans": "Gujarat"},
+    {"q": "Which Indian state receives the country's first sunrise?", "options": ["Meghalaya", "Nagaland", "Arunachal Pradesh", "Assam"], "ans": "Arunachal Pradesh"},
+    {"q": "The English word 'Juggernaut' comes from which temple?", "options": ["Tirupati", "Jagannath (Puri)", "Somnath", "Konark"], "ans": "Jagannath (Puri)"},
+    {"q": "Which state produces 55% of India's total tea output?", "options": ["West Bengal", "Assam", "Kerala", "Himachal Pradesh"], "ans": "Assam"},
+    {"q": "Polo — the sport — originated in which Indian state?", "options": ["Rajasthan", "Manipur", "Punjab", "Gujarat"], "ans": "Manipur"},
+    {"q": "Which festival lasts 75 days — the world's longest festival?", "options": ["Pushkar Camel Fair", "Hornbill Festival", "Bastar Dussehra", "Onam"], "ans": "Bastar Dussehra"},
+    {"q": "Which state was India's first to become fully organic?", "options": ["Kerala", "Sikkim", "Uttarakhand", "Nagaland"], "ans": "Sikkim"},
+    {"q": "The Ghost Pepper (Bhut Jolokia) — once world's hottest chilli — grows in which state?", "options": ["Andhra Pradesh", "Karnataka", "Nagaland", "Rajasthan"], "ans": "Nagaland"},
+    {"q": "Which lake is the world's only floating national park?", "options": ["Loktak Lake", "Dal Lake", "Chilika Lake", "Umiam Lake"], "ans": "Loktak Lake"},
+    {"q": "Mawsynram and Cherrapunjee are both in which state?", "options": ["Assam", "Mizoram", "Nagaland", "Meghalaya"], "ans": "Meghalaya"},
+    {"q": "Which state has the world's largest free kitchen?", "options": ["Rajasthan", "Gujarat", "Punjab", "Maharashtra"], "ans": "Punjab"},
+    {"q": "Namdapha National Park is located in which state?", "options": ["Assam", "Arunachal Pradesh", "Meghalaya", "Manipur"], "ans": "Arunachal Pradesh"},
+    {"q": "Bhimbetka cave paintings are approximately how old?", "options": ["5,000 years", "10,000 years", "30,000 years", "1,000 years"], "ans": "30,000 years"},
+    {"q": "Which state is known as 'Dev Bhoomi' (Land of Gods)?", "options": ["Uttarakhand", "Himachal Pradesh", "Rajasthan", "Bihar"], "ans": "Himachal Pradesh"},
+    {"q": "Kuchipudi classical dance originated in which state?", "options": ["Tamil Nadu", "Kerala", "Karnataka", "Andhra Pradesh"], "ans": "Andhra Pradesh"},
 ]
 
 # ── Storage helpers ─────────────────────────────────────────────────────────────
-
 
 def _load_json(path, default):
     try:
@@ -385,31 +387,24 @@ def _load_json(path, default):
     except Exception:
         return default
 
-
 def _save_json(path, data):
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
 
-
 def _hash(pw):
     return hashlib.sha256(pw.encode()).hexdigest()
-
 
 def load_users():
     return _load_json(USERS_FILE, {})
 
-
 def save_users(users):
     _save_json(USERS_FILE, users)
-
 
 def load_userdata():
     return _load_json(DATA_FILE, {})
 
-
 def save_userdata(data):
     _save_json(DATA_FILE, data)
-
 
 def get_user_record(username):
     ud = load_userdata()
@@ -418,17 +413,14 @@ def get_user_record(username):
         save_userdata(ud)
     return ud[username]
 
-
 def save_user_record(username, record):
     ud = load_userdata()
     ud[username] = record
     save_userdata(ud)
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 #  AUTH SCREEN
 # ══════════════════════════════════════════════════════════════════════════════
-
 
 class AuthScreen(tk.Frame):
     def __init__(self, master, on_login):
@@ -444,136 +436,58 @@ class AuthScreen(tk.Frame):
         card = tk.Frame(self, bg="#ffffff", bd=0, relief="flat")
         card.place(relx=0.5, rely=0.5, anchor="center", width=360, height=460)
 
-        tk.Label(card, text="🇮🇳", font=("Helvetica", 40), bg="#ffffff").pack(
-            pady=(30, 4)
-        )
-        tk.Label(
-            card,
-            text="Incredible India",
-            font=("Helvetica", 18, "bold"),
-            bg="#ffffff",
-            fg="#1a3d2b",
-        ).pack()
-        tk.Label(
-            card,
-            text="State Tourism Guide",
-            font=("Helvetica", 11),
-            bg="#ffffff",
-            fg="#6b7280",
-        ).pack(pady=(2, 20))
+        tk.Label(card, text="🇮🇳", font=("Helvetica", 40), bg="#ffffff").pack(pady=(30, 4))
+        tk.Label(card, text="Incredible India", font=("Helvetica", 18, "bold"),
+                 bg="#ffffff", fg="#1a3d2b").pack()
+        tk.Label(card, text="State Tourism Guide", font=("Helvetica", 11),
+                 bg="#ffffff", fg="#6b7280").pack(pady=(2, 20))
 
-        self.mode_lbl = tk.Label(
-            card,
-            text="Login to your account",
-            font=("Helvetica", 13, "bold"),
-            bg="#ffffff",
-            fg="#1a1a1a",
-        )
+        self.mode_lbl = tk.Label(card, text="Login to your account",
+                                 font=("Helvetica", 13, "bold"), bg="#ffffff", fg="#1a1a1a")
         self.mode_lbl.pack()
 
         form = tk.Frame(card, bg="#ffffff", pady=10, padx=30)
         form.pack(fill="x")
 
-        tk.Label(
-            form,
-            text="Username",
-            bg="#ffffff",
-            fg="#6b7280",
-            font=("Helvetica", 10),
-            anchor="w",
-        ).pack(fill="x")
+        tk.Label(form, text="Username", bg="#ffffff", fg="#6b7280",
+                 font=("Helvetica", 10), anchor="w").pack(fill="x")
         self.username_var = tk.StringVar()
-        tk.Entry(
-            form,
-            textvariable=self.username_var,
-            font=("Helvetica", 12),
-            relief="solid",
-            bd=1,
-        ).pack(fill="x", pady=(2, 10))
+        tk.Entry(form, textvariable=self.username_var, font=("Helvetica", 12),
+                 relief="solid", bd=1).pack(fill="x", pady=(2, 10))
 
-        tk.Label(
-            form,
-            text="Password",
-            bg="#ffffff",
-            fg="#6b7280",
-            font=("Helvetica", 10),
-            anchor="w",
-        ).pack(fill="x")
+        tk.Label(form, text="Password", bg="#ffffff", fg="#6b7280",
+                 font=("Helvetica", 10), anchor="w").pack(fill="x")
         self.password_var = tk.StringVar()
-        tk.Entry(
-            form,
-            textvariable=self.password_var,
-            show="●",
-            font=("Helvetica", 12),
-            relief="solid",
-            bd=1,
-        ).pack(fill="x", pady=(2, 4))
+        tk.Entry(form, textvariable=self.password_var, show="●",
+                 font=("Helvetica", 12), relief="solid", bd=1).pack(fill="x", pady=(2, 4))
 
         # Signup-only field
         self.email_frame = tk.Frame(form, bg="#ffffff")
-        tk.Label(
-            self.email_frame,
-            text="Email (optional)",
-            bg="#ffffff",
-            fg="#6b7280",
-            font=("Helvetica", 10),
-            anchor="w",
-        ).pack(fill="x")
+        tk.Label(self.email_frame, text="Email (optional)", bg="#ffffff", fg="#6b7280",
+                 font=("Helvetica", 10), anchor="w").pack(fill="x")
         self.email_var = tk.StringVar()
-        tk.Entry(
-            self.email_frame,
-            textvariable=self.email_var,
-            font=("Helvetica", 12),
-            relief="solid",
-            bd=1,
-        ).pack(fill="x", pady=(2, 4))
+        tk.Entry(self.email_frame, textvariable=self.email_var,
+                 font=("Helvetica", 12), relief="solid", bd=1).pack(fill="x", pady=(2, 4))
 
-        self.err_lbl = tk.Label(
-            form,
-            text="",
-            fg="#c0392b",
-            bg="#ffffff",
-            font=("Helvetica", 10),
-            wraplength=280,
-        )
+        self.err_lbl = tk.Label(form, text="", fg="#c0392b", bg="#ffffff",
+                                font=("Helvetica", 10), wraplength=280)
         self.err_lbl.pack()
 
-        self.action_btn = tk.Button(
-            form,
-            text="Login",
-            font=("Helvetica", 12, "bold"),
-            bg="#1D9E75",
-            fg="white",
-            relief="flat",
-            padx=16,
-            pady=8,
-            cursor="hand2",
-            command=self._action,
-        )
+        self.action_btn = tk.Button(form, text="Login", font=("Helvetica", 12, "bold"),
+                                    bg="#1D9E75", fg="white", relief="flat",
+                                    padx=16, pady=8, cursor="hand2",
+                                    command=self._action)
         self.action_btn.pack(fill="x", pady=8)
 
-        self.toggle_btn = tk.Button(
-            card,
-            text="Don't have an account? Sign Up",
-            font=("Helvetica", 10),
-            bg="#ffffff",
-            fg="#1D9E75",
-            relief="flat",
-            cursor="hand2",
-            command=self._toggle,
-        )
+        self.toggle_btn = tk.Button(card, text="Don't have an account? Sign Up",
+                                    font=("Helvetica", 10), bg="#ffffff",
+                                    fg="#1D9E75", relief="flat", cursor="hand2",
+                                    command=self._toggle)
         self.toggle_btn.pack()
 
-        tk.Button(
-            card,
-            text="Continue as Guest →",
-            font=("Helvetica", 10),
-            bg="#ffffff",
-            fg="#6b7280",
-            relief="flat",
-            cursor="hand2",
-            command=lambda: self.on_login("guest"),
-        ).pack(pady=(4, 0))
+        tk.Button(card, text="Continue as Guest →", font=("Helvetica", 10),
+                  bg="#ffffff", fg="#6b7280", relief="flat", cursor="hand2",
+                  command=lambda: self.on_login("guest")).pack(pady=(4, 0))
 
     def _toggle(self):
         self.mode = "signup" if self.mode == "login" else "login"
@@ -611,19 +525,14 @@ class AuthScreen(tk.Frame):
             if u in users:
                 self.err_lbl.config(text="Username already taken.")
                 return
-            users[u] = {
-                "pw": _hash(p),
-                "email": self.email_var.get().strip(),
-                "joined": datetime.datetime.now().isoformat(),
-            }
+            users[u] = {"pw": _hash(p), "email": self.email_var.get().strip(),
+                        "joined": datetime.datetime.now().isoformat()}
             save_users(users)
             self.on_login(u)
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  QUIZ WINDOW
 # ══════════════════════════════════════════════════════════════════════════════
-
 
 class QuizWindow(tk.Toplevel):
     def __init__(self, master, username, theme, on_done):
@@ -644,53 +553,29 @@ class QuizWindow(tk.Toplevel):
         self._load_question()
 
     def _build(self):
-        tk.Label(
-            self,
-            text="🧠  India Tourism Quiz",
-            font=("Helvetica", 15, "bold"),
-            bg=self.T["header"],
-            fg=self.T["header_fg"],
-            pady=10,
-        ).pack(fill="x")
+        tk.Label(self, text="🧠  India Tourism Quiz", font=("Helvetica", 15, "bold"),
+                 bg=self.T["header"], fg=self.T["header_fg"], pady=10).pack(fill="x")
 
-        self.progress_lbl = tk.Label(
-            self, font=("Helvetica", 10), bg=self.T["bg"], fg=self.T["muted"]
-        )
+        self.progress_lbl = tk.Label(self, font=("Helvetica", 10),
+                                     bg=self.T["bg"], fg=self.T["muted"])
         self.progress_lbl.pack(pady=(10, 0))
 
-        self.q_lbl = tk.Label(
-            self,
-            wraplength=460,
-            font=("Helvetica", 13),
-            bg=self.T["bg"],
-            fg=self.T["text"],
-            justify="left",
-            padx=20,
-        )
+        self.q_lbl = tk.Label(self, wraplength=460, font=("Helvetica", 13),
+                              bg=self.T["bg"], fg=self.T["text"], justify="left", padx=20)
         self.q_lbl.pack(pady=14, fill="x")
 
         self.opt_frame = tk.Frame(self, bg=self.T["bg"])
         self.opt_frame.pack(fill="x", padx=20)
         self.opt_btns = []
 
-        self.feedback_lbl = tk.Label(
-            self, text="", font=("Helvetica", 11, "bold"), bg=self.T["bg"]
-        )
+        self.feedback_lbl = tk.Label(self, text="", font=("Helvetica", 11, "bold"),
+                                     bg=self.T["bg"])
         self.feedback_lbl.pack(pady=6)
 
-        self.next_btn = tk.Button(
-            self,
-            text="Next →",
-            font=("Helvetica", 11),
-            bg=self.T["accent"],
-            fg="white",
-            relief="flat",
-            padx=16,
-            pady=6,
-            cursor="hand2",
-            command=self._next,
-            state="disabled",
-        )
+        self.next_btn = tk.Button(self, text="Next →", font=("Helvetica", 11),
+                                  bg=self.T["accent"], fg="white", relief="flat",
+                                  padx=16, pady=6, cursor="hand2",
+                                  command=self._next, state="disabled")
         self.next_btn.pack(pady=8)
 
     def _load_question(self):
@@ -701,28 +586,16 @@ class QuizWindow(tk.Toplevel):
         self.next_btn.config(state="disabled")
 
         q = self.questions[self.idx]
-        self.progress_lbl.config(
-            text=f"Question {self.idx+1} of {len(self.questions)}  |  Score: {self.score}"
-        )
+        self.progress_lbl.config(text=f"Question {self.idx+1} of {len(self.questions)}  |  Score: {self.score}")
         self.q_lbl.config(text=q["q"])
         opts = q["options"][:]
         random.shuffle(opts)
         for opt in opts:
-            b = tk.Button(
-                self.opt_frame,
-                text=opt,
-                font=("Helvetica", 11),
-                bg=self.T["card"],
-                fg=self.T["text"],
-                relief="flat",
-                padx=10,
-                pady=6,
-                cursor="hand2",
-                anchor="w",
-                bd=1,
-                highlightbackground=self.T["border"],
-                command=lambda o=opt: self._answer(o),
-            )
+            b = tk.Button(self.opt_frame, text=opt, font=("Helvetica", 11),
+                          bg=self.T["card"], fg=self.T["text"], relief="flat",
+                          padx=10, pady=6, cursor="hand2", anchor="w",
+                          bd=1, highlightbackground=self.T["border"],
+                          command=lambda o=opt: self._answer(o))
             b.pack(fill="x", pady=3)
             self.opt_btns.append(b)
 
@@ -740,10 +613,8 @@ class QuizWindow(tk.Toplevel):
                 b.config(bg="#d4f0e7")
             elif b.cget("text") == opt and opt != correct:
                 b.config(bg="#fde8e8")
-        self.next_btn.config(
-            state="normal",
-            text="Next →" if self.idx < len(self.questions) - 1 else "See Results",
-        )
+        self.next_btn.config(state="normal",
+                             text="Next →" if self.idx < len(self.questions) - 1 else "See Results")
 
     def _next(self):
         self.idx += 1
@@ -755,65 +626,34 @@ class QuizWindow(tk.Toplevel):
     def _show_result(self):
         if self.username != "guest":
             rec = get_user_record(self.username)
-            rec["quiz_scores"].append(
-                {
-                    "score": self.score,
-                    "total": len(self.questions),
-                    "date": datetime.datetime.now().strftime("%d %b %Y"),
-                }
-            )
+            rec["quiz_scores"].append({
+                "score": self.score,
+                "total": len(self.questions),
+                "date": datetime.datetime.now().strftime("%d %b %Y")
+            })
             save_user_record(self.username, rec)
         for w in self.winfo_children():
             w.destroy()
         pct = int(self.score / len(self.questions) * 100)
         emoji = "🏆" if pct >= 80 else "👍" if pct >= 50 else "📚"
-        tk.Label(self, text=emoji, font=("Helvetica", 50), bg=self.T["bg"]).pack(
-            pady=(40, 8)
-        )
-        tk.Label(
-            self,
-            text=f"You scored {self.score} / {len(self.questions)}",
-            font=("Helvetica", 18, "bold"),
-            bg=self.T["bg"],
-            fg=self.T["text"],
-        ).pack()
-        tk.Label(
-            self,
-            text=f"{pct}% correct",
-            font=("Helvetica", 13),
-            bg=self.T["bg"],
-            fg=self.T["muted"],
-        ).pack(pady=4)
-        msg = (
-            "Outstanding knowledge!"
-            if pct >= 80
-            else (
-                "Good effort! Keep exploring."
-                if pct >= 50
-                else "Keep visiting states to learn more!"
-            )
-        )
-        tk.Label(
-            self, text=msg, font=("Helvetica", 12), bg=self.T["bg"], fg=self.T["accent"]
-        ).pack(pady=8)
-        tk.Button(
-            self,
-            text="Close",
-            font=("Helvetica", 11),
-            bg=self.T["accent"],
-            fg="white",
-            relief="flat",
-            padx=16,
-            pady=6,
-            cursor="hand2",
-            command=lambda: [self.destroy(), self.on_done()],
-        ).pack(pady=14)
-
+        tk.Label(self, text=emoji, font=("Helvetica", 50), bg=self.T["bg"]).pack(pady=(40, 8))
+        tk.Label(self, text=f"You scored {self.score} / {len(self.questions)}",
+                 font=("Helvetica", 18, "bold"), bg=self.T["bg"], fg=self.T["text"]).pack()
+        tk.Label(self, text=f"{pct}% correct", font=("Helvetica", 13),
+                 bg=self.T["bg"], fg=self.T["muted"]).pack(pady=4)
+        msg = ("Outstanding knowledge!" if pct >= 80
+               else "Good effort! Keep exploring." if pct >= 50
+               else "Keep visiting states to learn more!")
+        tk.Label(self, text=msg, font=("Helvetica", 12), bg=self.T["bg"],
+                 fg=self.T["accent"]).pack(pady=8)
+        tk.Button(self, text="Close", font=("Helvetica", 11),
+                  bg=self.T["accent"], fg="white", relief="flat",
+                  padx=16, pady=6, cursor="hand2",
+                  command=lambda: [self.destroy(), self.on_done()]).pack(pady=14)
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  MAIN APP
 # ══════════════════════════════════════════════════════════════════════════════
-
 
 class TourismApp:
     def __init__(self, root):
@@ -858,105 +698,50 @@ class TourismApp:
         hdr.pack(fill="x")
         hdr.columnconfigure(1, weight=1)
 
-        tk.Label(
-            hdr,
-            text="🇮🇳  Incredible India — State Tourism Guide",
-            font=("Helvetica", 16, "bold"),
-            bg=self.T["header"],
-            fg=self.T["header_fg"],
-        ).grid(row=0, column=0, padx=16, sticky="w")
+        tk.Label(hdr, text="🇮🇳  Incredible India — State Tourism Guide",
+                 font=("Helvetica", 16, "bold"),
+                 bg=self.T["header"], fg=self.T["header_fg"]).grid(row=0, column=0, padx=16, sticky="w")
 
         # right side controls
         ctrl = tk.Frame(hdr, bg=self.T["header"])
         ctrl.grid(row=0, column=2, padx=12, sticky="e")
 
         user_lbl = "Guest" if self.username == "guest" else f"👤 {self.username}"
-        tk.Label(
-            ctrl,
-            text=user_lbl,
-            font=("Helvetica", 10),
-            bg=self.T["header"],
-            fg=self.T["header_fg"],
-        ).pack(side="left", padx=6)
+        tk.Label(ctrl, text=user_lbl, font=("Helvetica", 10),
+                 bg=self.T["header"], fg=self.T["header_fg"]).pack(side="left", padx=6)
 
-        tk.Button(
-            ctrl,
-            text="🌙 Dark" if self.theme_name == "light" else "☀️ Light",
-            font=("Helvetica", 10),
-            bg=self.T["accent2"],
-            fg="white",
-            relief="flat",
-            padx=8,
-            pady=3,
-            cursor="hand2",
-            command=self._toggle_theme,
-        ).pack(side="left", padx=4)
+        tk.Button(ctrl, text="🌙 Dark" if self.theme_name == "light" else "☀️ Light",
+                  font=("Helvetica", 10), bg=self.T["accent2"], fg="white",
+                  relief="flat", padx=8, pady=3, cursor="hand2",
+                  command=self._toggle_theme).pack(side="left", padx=4)
 
-        tk.Button(
-            ctrl,
-            text="🧠 Quiz",
-            font=("Helvetica", 10),
-            bg=self.T["accent"],
-            fg="white",
-            relief="flat",
-            padx=8,
-            pady=3,
-            cursor="hand2",
-            command=self._open_quiz,
-        ).pack(side="left", padx=4)
+        tk.Button(ctrl, text="🧠 Quiz", font=("Helvetica", 10),
+                  bg=self.T["accent"], fg="white", relief="flat",
+                  padx=8, pady=3, cursor="hand2",
+                  command=self._open_quiz).pack(side="left", padx=4)
 
         if self.username != "guest":
-            tk.Button(
-                ctrl,
-                text="⭐ Favourites",
-                font=("Helvetica", 10),
-                bg="#f0a500",
-                fg="white",
-                relief="flat",
-                padx=8,
-                pady=3,
-                cursor="hand2",
-                command=self._show_favourites,
-            ).pack(side="left", padx=4)
+            tk.Button(ctrl, text="⭐ Favourites", font=("Helvetica", 10),
+                      bg="#f0a500", fg="white", relief="flat",
+                      padx=8, pady=3, cursor="hand2",
+                      command=self._show_favourites).pack(side="left", padx=4)
 
-        tk.Button(
-            ctrl,
-            text="Logout",
-            font=("Helvetica", 10),
-            bg=self.T["danger"],
-            fg="white",
-            relief="flat",
-            padx=8,
-            pady=3,
-            cursor="hand2",
-            command=self._show_auth,
-        ).pack(side="left", padx=4)
+        tk.Button(ctrl, text="Logout", font=("Helvetica", 10),
+                  bg=self.T["danger"], fg="white", relief="flat",
+                  padx=8, pady=3, cursor="hand2",
+                  command=self._show_auth).pack(side="left", padx=4)
 
         # ── Search bar ──
         sf = tk.Frame(self.root, bg=self.T["bg"], pady=8, padx=16)
         sf.pack(fill="x")
-        tk.Label(sf, text="🔍", bg=self.T["bg"], font=("Helvetica", 12)).pack(
-            side="left"
-        )
+        tk.Label(sf, text="🔍", bg=self.T["bg"], font=("Helvetica", 12)).pack(side="left")
         self.search_var = tk.StringVar()
         self.search_var.trace("w", lambda *a: self._filter_list())
-        tk.Entry(
-            sf,
-            textvariable=self.search_var,
-            font=("Helvetica", 11),
-            relief="solid",
-            bd=1,
-            width=34,
-            bg=self.T["panel"],
-            fg=self.T["text"],
-        ).pack(side="left", padx=8)
-        tk.Label(
-            sf,
-            text="Search states, cuisine, places...",
-            bg=self.T["bg"],
-            fg=self.T["muted"],
-            font=("Helvetica", 9),
-        ).pack(side="left")
+        tk.Entry(sf, textvariable=self.search_var, font=("Helvetica", 11),
+                 relief="solid", bd=1, width=34,
+                 bg=self.T["panel"], fg=self.T["text"]).pack(side="left", padx=8)
+        tk.Label(sf, text="Search states, cuisine, places...",
+                 bg=self.T["bg"], fg=self.T["muted"], font=("Helvetica", 9)).pack(side="left")
 
         # ── Main layout ──
         main = tk.Frame(self.root, bg=self.T["bg"])
@@ -965,30 +750,17 @@ class TourismApp:
         # Left — state list
         left = tk.Frame(main, bg=self.T["bg"])
         left.pack(side="left", fill="y")
-        tk.Label(
-            left,
-            text=f"States ({len(STATES)})",
-            font=("Helvetica", 12, "bold"),
-            bg=self.T["bg"],
-            fg=self.T["text"],
-            anchor="w",
-        ).pack(anchor="w", pady=(0, 6))
+        tk.Label(left, text=f"States ({len(STATES)})", font=("Helvetica", 12, "bold"),
+                 bg=self.T["bg"], fg=self.T["text"], anchor="w").pack(anchor="w", pady=(0, 6))
         lf = tk.Frame(left, bd=1, relief="solid", bg=self.T["panel"])
         lf.pack(fill="y", expand=True)
         sb = tk.Scrollbar(lf, orient="vertical")
-        self.listbox = tk.Listbox(
-            lf,
-            yscrollcommand=sb.set,
-            font=("Helvetica", 12),
-            width=24,
-            activestyle="none",
-            selectbackground=self.T["list_sel"],
-            selectforeground="white",
-            bd=0,
-            highlightthickness=0,
-            bg=self.T["panel"],
-            fg=self.T["text"],
-        )
+        self.listbox = tk.Listbox(lf, yscrollcommand=sb.set, font=("Helvetica", 12),
+                                  width=24, activestyle="none",
+                                  selectbackground=self.T["list_sel"],
+                                  selectforeground="white", bd=0,
+                                  highlightthickness=0,
+                                  bg=self.T["panel"], fg=self.T["text"])
         sb.config(command=self.listbox.yview)
         sb.pack(side="right", fill="y")
         self.listbox.pack(side="left", fill="both", expand=True)
@@ -1003,50 +775,26 @@ class TourismApp:
         title_row = tk.Frame(right, bg=self.T["bg"])
         title_row.pack(fill="x", pady=(0, 2))
 
-        self.title_lbl = tk.Label(
-            title_row,
-            text="← Select a state to begin",
-            font=("Helvetica", 16, "bold"),
-            bg=self.T["bg"],
-            fg=self.T["text"],
-            anchor="w",
-            wraplength=480,
-            justify="left",
-        )
+        self.title_lbl = tk.Label(title_row, text="← Select a state to begin",
+                                  font=("Helvetica", 16, "bold"),
+                                  bg=self.T["bg"], fg=self.T["text"],
+                                  anchor="w", wraplength=480, justify="left")
         self.title_lbl.pack(side="left")
 
-        self.fav_btn = tk.Button(
-            title_row,
-            text="☆ Add to Favourites",
-            font=("Helvetica", 10),
-            bg=self.T["bg"],
-            fg=self.T["muted"],
-            relief="flat",
-            cursor="hand2",
-            command=self._toggle_favourite,
-        )
+        self.fav_btn = tk.Button(title_row, text="☆ Add to Favourites",
+                                 font=("Helvetica", 10), bg=self.T["bg"],
+                                 fg=self.T["muted"], relief="flat", cursor="hand2",
+                                 command=self._toggle_favourite)
         self.fav_btn.pack(side="right", padx=4)
 
-        self.visited_btn = tk.Button(
-            title_row,
-            text="✓ Mark Visited",
-            font=("Helvetica", 10),
-            bg=self.T["bg"],
-            fg=self.T["muted"],
-            relief="flat",
-            cursor="hand2",
-            command=self._toggle_visited,
-        )
+        self.visited_btn = tk.Button(title_row, text="✓ Mark Visited",
+                                     font=("Helvetica", 10), bg=self.T["bg"],
+                                     fg=self.T["muted"], relief="flat", cursor="hand2",
+                                     command=self._toggle_visited)
         self.visited_btn.pack(side="right", padx=4)
 
-        self.tag_lbl = tk.Label(
-            right,
-            text="",
-            font=("Helvetica", 11, "italic"),
-            bg=self.T["bg"],
-            fg=self.T["accent"],
-            anchor="w",
-        )
+        self.tag_lbl = tk.Label(right, text="", font=("Helvetica", 11, "italic"),
+                                bg=self.T["bg"], fg=self.T["accent"], anchor="w")
         self.tag_lbl.pack(anchor="w", pady=(0, 8))
 
         # Tab bar
@@ -1054,19 +802,10 @@ class TourismApp:
         self.tab_frame.pack(fill="x", pady=(0, 6))
         self.tab_btns = {}
         for t in TABS:
-            btn = tk.Button(
-                self.tab_frame,
-                text=t,
-                font=("Helvetica", 10),
-                relief="flat",
-                bd=0,
-                padx=10,
-                pady=5,
-                bg=self.T["card"],
-                fg=self.T["muted"],
-                cursor="hand2",
-                command=lambda tab=t: self._switch_tab(tab),
-            )
+            btn = tk.Button(self.tab_frame, text=t, font=("Helvetica", 10),
+                            relief="flat", bd=0, padx=10, pady=5,
+                            bg=self.T["card"], fg=self.T["muted"], cursor="hand2",
+                            command=lambda tab=t: self._switch_tab(tab))
             btn.pack(side="left", padx=2)
             self.tab_btns[t] = btn
 
@@ -1074,16 +813,10 @@ class TourismApp:
         tf = tk.Frame(right, bd=1, relief="solid")
         tf.pack(fill="both", expand=True)
         self.text_area = scrolledtext.ScrolledText(
-            tf,
-            wrap="word",
-            font=("Helvetica", 12),
-            relief="flat",
-            bg=self.T["panel"],
-            fg=self.T["text"],
+            tf, wrap="word", font=("Helvetica", 12), relief="flat",
+            bg=self.T["panel"], fg=self.T["text"],
             insertbackground=self.T["text"],
-            padx=14,
-            pady=12,
-            state="disabled",
+            padx=14, pady=12, state="disabled"
         )
         self.text_area.pack(fill="both", expand=True)
 
@@ -1091,80 +824,39 @@ class TourismApp:
         bf = tk.Frame(right, bg=self.T["bg"], pady=8)
         bf.pack(fill="x")
         self.speak_btn = tk.Button(
-            bf,
-            text="🔊  Read Aloud",
-            font=("Helvetica", 11),
-            bg=self.T["accent"],
-            fg="white",
-            relief="flat",
-            padx=14,
-            pady=6,
-            cursor="hand2",
-            command=self._speak,
-            state="disabled",
+            bf, text="🔊  Read Aloud", font=("Helvetica", 11),
+            bg=self.T["accent"], fg="white", relief="flat", padx=14, pady=6,
+            cursor="hand2", command=self._speak, state="disabled"
         )
         self.speak_btn.pack(side="left")
         self.stop_btn = tk.Button(
-            bf,
-            text="⏹  Stop",
-            font=("Helvetica", 11),
-            bg=self.T["danger"],
-            fg="white",
-            relief="flat",
-            padx=12,
-            pady=6,
-            cursor="hand2",
-            command=self._stop_speaking,
-            state="disabled",
+            bf, text="⏹  Stop", font=("Helvetica", 11),
+            bg=self.T["danger"], fg="white", relief="flat", padx=12, pady=6,
+            cursor="hand2", command=self._stop_speaking, state="disabled"
         )
         self.stop_btn.pack(side="left", padx=8)
 
         # Random state button
-        tk.Button(
-            bf,
-            text="🎲 Random State",
-            font=("Helvetica", 11),
-            bg="#7c3aed",
-            fg="white",
-            relief="flat",
-            padx=12,
-            pady=6,
-            cursor="hand2",
-            command=self._random_state,
-        ).pack(side="right", padx=4)
+        tk.Button(bf, text="🎲 Random State", font=("Helvetica", 11),
+                  bg="#7c3aed", fg="white", relief="flat", padx=12, pady=6,
+                  cursor="hand2", command=self._random_state).pack(side="right", padx=4)
 
         if not TTS_AVAILABLE:
-            tk.Label(
-                bf,
-                text="Install pyttsx3 for TTS",
-                font=("Helvetica", 9),
-                bg=self.T["bg"],
-                fg=self.T["muted"],
-            ).pack(side="left")
+            tk.Label(bf, text="Install pyttsx3 for TTS",
+                     font=("Helvetica", 9), bg=self.T["bg"], fg=self.T["muted"]).pack(side="left")
 
         # Status bar
         self.status_var = tk.StringVar(value="Welcome! Select a state to explore.")
-        status = tk.Label(
-            self.root,
-            textvariable=self.status_var,
-            font=("Helvetica", 9),
-            bg=self.T["header"],
-            fg=self.T["header_fg"],
-            anchor="w",
-            padx=10,
-            pady=3,
-        )
+        status = tk.Label(self.root, textvariable=self.status_var,
+                          font=("Helvetica", 9), bg=self.T["header"],
+                          fg=self.T["header_fg"], anchor="w", padx=10, pady=3)
         status.pack(fill="x", side="bottom")
 
     # ── List helpers ──────────────────────────────────────────────────────────
 
     def _populate_list(self, names):
         self.listbox.delete(0, "end")
-        rec = (
-            get_user_record(self.username)
-            if self.username != "guest"
-            else {"favourites": [], "visited": []}
-        )
+        rec = get_user_record(self.username) if self.username != "guest" else {"favourites": [], "visited": []}
         for name in names:
             s = STATES[name]
             prefix = ""
@@ -1178,10 +870,8 @@ class TourismApp:
     def _filter_list(self):
         q = self.search_var.get().lower()
         self.filtered_names = [
-            n
-            for n in STATES
-            if q in n.lower()
-            or q in STATES[n]["tag"].lower()
+            n for n in STATES
+            if q in n.lower() or q in STATES[n]["tag"].lower()
             or any(q in STATES[n][t].lower() for t in TABS)
         ]
         self._populate_list(self.filtered_names)
@@ -1268,9 +958,7 @@ class TourismApp:
 
     def _toggle_visited(self):
         if self.username == "guest":
-            messagebox.showinfo(
-                "Login Required", "Please login to track visited states."
-            )
+            messagebox.showinfo("Login Required", "Please login to track visited states.")
             return
         if not self.current_state:
             return
@@ -1296,85 +984,38 @@ class TourismApp:
         win.title("My Profile")
         win.geometry("420x460")
         win.configure(bg=self.T["bg"])
-        tk.Label(
-            win,
-            text=f"👤  {self.username}'s Profile",
-            font=("Helvetica", 14, "bold"),
-            bg=self.T["header"],
-            fg=self.T["header_fg"],
-            pady=10,
-        ).pack(fill="x")
+        tk.Label(win, text=f"👤  {self.username}'s Profile",
+                 font=("Helvetica", 14, "bold"),
+                 bg=self.T["header"], fg=self.T["header_fg"], pady=10).pack(fill="x")
 
         frm = tk.Frame(win, bg=self.T["bg"], padx=20, pady=14)
         frm.pack(fill="both", expand=True)
 
-        tk.Label(
-            frm,
-            text=f"⭐ Favourite States ({len(favs)})",
-            font=("Helvetica", 11, "bold"),
-            bg=self.T["bg"],
-            fg=self.T["text"],
-        ).pack(anchor="w")
-        tk.Label(
-            frm,
-            text=", ".join(favs) if favs else "None yet",
-            font=("Helvetica", 10),
-            bg=self.T["bg"],
-            fg=self.T["muted"],
-            wraplength=360,
-            justify="left",
-        ).pack(anchor="w", pady=(2, 10))
+        tk.Label(frm, text=f"⭐ Favourite States ({len(favs)})",
+                 font=("Helvetica", 11, "bold"), bg=self.T["bg"], fg=self.T["text"]).pack(anchor="w")
+        tk.Label(frm, text=", ".join(favs) if favs else "None yet",
+                 font=("Helvetica", 10), bg=self.T["bg"], fg=self.T["muted"],
+                 wraplength=360, justify="left").pack(anchor="w", pady=(2, 10))
 
-        tk.Label(
-            frm,
-            text=f"✓ Visited States ({len(visited)} / {len(STATES)})",
-            font=("Helvetica", 11, "bold"),
-            bg=self.T["bg"],
-            fg=self.T["text"],
-        ).pack(anchor="w")
-        tk.Label(
-            frm,
-            text=", ".join(visited) if visited else "None yet",
-            font=("Helvetica", 10),
-            bg=self.T["bg"],
-            fg=self.T["muted"],
-            wraplength=360,
-            justify="left",
-        ).pack(anchor="w", pady=(2, 10))
+        tk.Label(frm, text=f"✓ Visited States ({len(visited)} / {len(STATES)})",
+                 font=("Helvetica", 11, "bold"), bg=self.T["bg"], fg=self.T["text"]).pack(anchor="w")
+        tk.Label(frm, text=", ".join(visited) if visited else "None yet",
+                 font=("Helvetica", 10), bg=self.T["bg"], fg=self.T["muted"],
+                 wraplength=360, justify="left").pack(anchor="w", pady=(2, 10))
 
-        tk.Label(
-            frm,
-            text=f"🧠 Quiz History ({len(scores)} attempts)",
-            font=("Helvetica", 11, "bold"),
-            bg=self.T["bg"],
-            fg=self.T["text"],
-        ).pack(anchor="w")
+        tk.Label(frm, text=f"🧠 Quiz History ({len(scores)} attempts)",
+                 font=("Helvetica", 11, "bold"), bg=self.T["bg"], fg=self.T["text"]).pack(anchor="w")
         if scores:
             for s in scores[-5:]:
-                tk.Label(
-                    frm,
-                    text=f"  {s['date']} — {s['score']}/{s['total']} ({int(s['score']/s['total']*100)}%)",
-                    font=("Helvetica", 10),
-                    bg=self.T["bg"],
-                    fg=self.T["muted"],
-                ).pack(anchor="w")
+                tk.Label(frm, text=f"  {s['date']} — {s['score']}/{s['total']} ({int(s['score']/s['total']*100)}%)",
+                         font=("Helvetica", 10), bg=self.T["bg"], fg=self.T["muted"]).pack(anchor="w")
         else:
-            tk.Label(
-                frm,
-                text="No quiz attempts yet",
-                font=("Helvetica", 10),
-                bg=self.T["bg"],
-                fg=self.T["muted"],
-            ).pack(anchor="w")
+            tk.Label(frm, text="No quiz attempts yet",
+                     font=("Helvetica", 10), bg=self.T["bg"], fg=self.T["muted"]).pack(anchor="w")
 
         pct = int(len(visited) / len(STATES) * 100)
-        tk.Label(
-            frm,
-            text=f"\n🗺️  You've explored {pct}% of India!",
-            font=("Helvetica", 12, "bold"),
-            bg=self.T["bg"],
-            fg=self.T["accent"],
-        ).pack(anchor="w")
+        tk.Label(frm, text=f"\n🗺️  You've explored {pct}% of India!",
+                 font=("Helvetica", 12, "bold"), bg=self.T["bg"], fg=self.T["accent"]).pack(anchor="w")
 
     # ── Theme toggle ──────────────────────────────────────────────────────────
 
@@ -1390,14 +1031,8 @@ class TourismApp:
     # ── Quiz ──────────────────────────────────────────────────────────────────
 
     def _open_quiz(self):
-        QuizWindow(
-            self.root,
-            self.username,
-            self.T,
-            on_done=lambda: (
-                self._show_favourites() if self.username != "guest" else None
-            ),
-        )
+        QuizWindow(self.root, self.username, self.T,
+                   on_done=lambda: self._show_favourites() if self.username != "guest" else None)
 
     # ── Random state ─────────────────────────────────────────────────────────
 
