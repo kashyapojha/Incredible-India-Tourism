@@ -1,10 +1,14 @@
-name - Incredible India — Web CI/CD
+name: Incredible India — Web CI/CD
 
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
+  packages: write
 
 env:
   PYTHON_VERSION: "3.11"
@@ -17,10 +21,13 @@ jobs:
   build:
     name: Build & Test
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -39,13 +46,17 @@ jobs:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
     needs: build
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
             -Dsonar.projectKey=kashyapojha_Incredible-India-Tourism
@@ -53,8 +64,6 @@ jobs:
             -Dsonar.sources=.
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.qualitygate.wait=false
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   # ─────────────────────────────
   # 3. Docker Build & Push
@@ -63,8 +72,13 @@ jobs:
     name: Docker Build & Push
     runs-on: ubuntu-latest
     needs: sonarcloud
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
@@ -80,20 +94,23 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:latest
+          cache-to: type=inline
 
   # ─────────────────────────────
-  # 4. Test SSH connection (optional but recommended)
+  # 4. Test SSH connection
   # ─────────────────────────────
   test-ssh:
     name: Test SSH Connection
     runs-on: ubuntu-latest
     needs: docker
+
     steps:
       - name: Test SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ubuntu                # Ubuntu instance
+          username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: echo "SSH connection to EC2 works ✅"
@@ -105,15 +122,21 @@ jobs:
     name: Deploy Docker to EC2
     runs-on: ubuntu-latest
     needs: [docker, test-ssh]
+
+    # 🚀 Deploy ONLY on main branch
+    if: github.ref == 'refs/heads/main'
+
     steps:
       - name: SSH and Deploy Docker
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ubuntu               # Ubuntu instance
+          username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
+            set -e
+
             # Pull latest Docker image
             docker pull ${{ env.IMAGE_NAME }}:latest
 
