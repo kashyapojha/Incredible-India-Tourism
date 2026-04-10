@@ -1,0 +1,19 @@
+.git
+.github
+.vscode
+terraform
+data
+.sixth
+
+# Python cache
+__pycache__
+*.pyc
+
+# Unused files
+Tourism.py
+users.json
+userdata.json
+
+# Docs
+README.md
+LICENSE
